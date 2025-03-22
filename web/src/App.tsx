@@ -21,6 +21,7 @@ function SearchBar() {
   };
 
   const handleSearch = (searchQuery: string) => {
+    if (!searchQuery) return;
     setQuery(searchQuery);
     setSuggestions([]);
     setDefinition(`Definition of ${searchQuery}`);

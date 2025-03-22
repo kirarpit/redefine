@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import MyApp from "./App";
+// import MyApp from "./App";
+import Redefine from "./redefine";
 import "./css/tailwind.css";
 
 const root = ReactDOM.createRoot(
@@ -8,6 +9,6 @@ const root = ReactDOM.createRoot(
 );
 root.render(
   <React.StrictMode>
-    <MyApp />
+    <Redefine />
   </React.StrictMode>
 );
