@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent, KeyboardEvent } from "react";
+import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
 import { DictionaryEntry, Flashcard, SearchHistoryItem } from "../types";
 import { dictionary } from "../data/dictionaryData";
 
@@ -15,6 +15,7 @@ const SearchBar: React.FC<SearchBarProps> = () => {
   >(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [streamedText, setStreamedText] = useState<string>("");
+  const searchBarRef = useRef<HTMLDivElement>(null);
   const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>(() => {
     const saved = localStorage.getItem("savedFlashcards");
     return saved ? JSON.parse(saved) : [];
@@ -34,6 +35,23 @@ const SearchBar: React.FC<SearchBarProps> = () => {
   useEffect(() => {
     localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
   }, [searchHistory]);
+
+  // Handle clicks outside the search bar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchBarRef.current &&
+        !searchBarRef.current.contains(event.target as Node)
+      ) {
+        setSuggestions([]);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
@@ -96,7 +114,7 @@ const SearchBar: React.FC<SearchBarProps> = () => {
     }, 10);
   };
 
-  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>): void => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === "Enter") {
       if (selectedIndex !== null && suggestions[selectedIndex]) {
         handleSearch(suggestions[selectedIndex]);
@@ -115,6 +133,13 @@ const SearchBar: React.FC<SearchBarProps> = () => {
           ? suggestions.length - 1
           : prevIndex - 1
       );
+    } else if (e.key === "Escape") {
+      if (suggestions.length > 0) {
+        setSuggestions([]);
+      } else {
+        // If no suggestions are visible, defocus the input
+        (e.target as HTMLInputElement).blur();
+      }
     }
   };
 
@@ -162,7 +187,7 @@ const SearchBar: React.FC<SearchBarProps> = () => {
 
   return (
     <div className="flex flex-col">
-      <div className="relative mb-6">
+      <div className="relative mb-6" ref={searchBarRef}>
         <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 dark:focus-within:ring-blue-400">
           <input
             type="text"
