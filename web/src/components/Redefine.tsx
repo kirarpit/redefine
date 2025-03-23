@@ -92,8 +92,8 @@ const Redefine: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex justify-center items-center p-4">
-      <div className="w-full max-w-4xl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col pt-12 px-4">
+      <div className="w-full max-w-4xl mx-auto">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8">
           <div className="flex justify-between items-center mb-6">
             <div>

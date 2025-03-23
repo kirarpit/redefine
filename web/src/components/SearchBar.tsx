@@ -26,6 +26,7 @@ const SearchBar: React.FC<SearchBarProps> = () => {
     }
   );
 
+  // TODO: save flashcards and history to a database asynchronously after storing in local storage
   useEffect(() => {
     localStorage.setItem("savedFlashcards", JSON.stringify(savedFlashcards));
   }, [savedFlashcards]);
@@ -37,8 +38,6 @@ const SearchBar: React.FC<SearchBarProps> = () => {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setQuery(value);
-    setWordData(null);
-    setStreamedText("");
 
     const filteredSuggestions = value
       ? Object.keys(dictionary).filter((word) =>
@@ -81,18 +80,20 @@ const SearchBar: React.FC<SearchBarProps> = () => {
 
   const streamDefinition = (text: string): void => {
     setIsStreaming(true);
+    if (text.length === 0) return;
     setStreamedText("");
-
     let index = 0;
+
     const interval = setInterval(() => {
       if (index < text.length) {
-        setStreamedText((prev) => prev + text.charAt(index));
+        const currentChar = text.charAt(index);
+        setStreamedText((prev) => prev + currentChar);
         index++;
       } else {
         clearInterval(interval);
         setIsStreaming(false);
       }
-    }, 15);
+    }, 10);
   };
 
   const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>): void => {
