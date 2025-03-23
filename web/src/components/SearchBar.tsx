@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { DictionaryEntry, Flashcard, SearchHistoryItem } from "../types";
 import { dictionary } from "../data/dictionaryData";
 
@@ -16,6 +16,7 @@ const SearchBar: React.FC<SearchBarProps> = () => {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [streamedText, setStreamedText] = useState<string>("");
   const searchBarRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>(() => {
     const saved = localStorage.getItem("savedFlashcards");
     return saved ? JSON.parse(saved) : [];
@@ -53,6 +54,15 @@ const SearchBar: React.FC<SearchBarProps> = () => {
     };
   }, []);
 
+  // Clear interval on component unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setQuery(value);
@@ -73,6 +83,16 @@ const SearchBar: React.FC<SearchBarProps> = () => {
     setQuery(searchQuery);
     setSuggestions([]);
     setSelectedIndex(null);
+
+    // Clear any existing streaming interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    // Reset streaming state
+    setIsStreaming(false);
+    setStreamedText("");
 
     const data = dictionary[searchQuery.toLowerCase()];
 
@@ -97,18 +117,27 @@ const SearchBar: React.FC<SearchBarProps> = () => {
   };
 
   const streamDefinition = (text: string): void => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     setIsStreaming(true);
     if (text.length === 0) return;
     setStreamedText("");
     let index = 0;
 
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       if (index < text.length) {
         const currentChar = text.charAt(index);
         setStreamedText((prev) => prev + currentChar);
         index++;
       } else {
-        clearInterval(interval);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
         setIsStreaming(false);
       }
     }, 10);
