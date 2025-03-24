@@ -12,7 +12,7 @@ export type Flashcard = {
   front: string;
   back: string;
   word: string;
-  savedAt: string;
+  exportedAt: string;
 };
 
 export type SearchHistoryItem = {

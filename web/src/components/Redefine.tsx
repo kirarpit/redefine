@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import SearchBar from "./SearchBar";
 import HistoryPanel from "./HistoryPanel";
 import SettingsPanel from "./SettingsPanel";
+import { DictionaryEntry, Flashcard, SearchHistoryItem } from "../types";
+import { dictionary } from "../data/dictionaryData";
 
 type TabType = "search" | "history" | "settings";
 
@@ -77,6 +79,26 @@ const Redefine: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<TabType>("search");
 
+  // Lifted search state from SearchBar
+  const [query, setQuery] = useState<string>("");
+  const [wordData, setWordData] = useState<
+    DictionaryEntry | { word: string; error: boolean } | null
+  >(null);
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [streamedText, setStreamedText] = useState<string>("");
+  const [exportedFlashcards, setExportedFlashcards] = useState<Flashcard[]>(
+    () => {
+      const exported = localStorage.getItem("exportedFlashcards");
+      return exported ? JSON.parse(exported) : [];
+    }
+  );
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>(
+    () => {
+      const history = localStorage.getItem("searchHistory");
+      return history ? JSON.parse(history) : [];
+    }
+  );
+
   useEffect(() => {
     console.log("Dark mode useEffect triggered. Current value:", darkMode);
     if (darkMode) {
@@ -87,8 +109,65 @@ const Redefine: React.FC = () => {
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
+  // Save state to localStorage
+  useEffect(() => {
+    localStorage.setItem(
+      "exportedFlashcards",
+      JSON.stringify(exportedFlashcards)
+    );
+  }, [exportedFlashcards]);
+
+  useEffect(() => {
+    localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
+  }, [searchHistory]);
+
   const toggleDarkMode = (): void => {
     setDarkMode((prev) => !prev);
+  };
+
+  const handleNavigateToSearch = (word: string): void => {
+    setActiveTab("search");
+    setQuery(word);
+
+    // Get dictionary data for the word
+    const data = dictionary[word.toLowerCase()];
+    if (data) {
+      setWordData(data);
+      // Simulate the streaming effect
+      if (data.definition) {
+        setIsStreaming(true);
+        setStreamedText("");
+        let index = 0;
+        const streamInterval = setInterval(() => {
+          if (index < data.definition.length) {
+            const currentChar = data.definition.charAt(index);
+            setStreamedText((prev) => prev + currentChar);
+            index++;
+          } else {
+            clearInterval(streamInterval);
+            setIsStreaming(false);
+          }
+        }, 10);
+      }
+
+      setSearchHistory((prev) => {
+        const filteredHistory = prev.filter((item) => item.word !== data.word);
+        return [
+          { word: data.word, timestamp: new Date().toISOString() },
+          ...filteredHistory,
+        ].slice(0, 100);
+      });
+    } else {
+      setWordData({
+        word,
+        error: true,
+      });
+      setStreamedText("");
+    }
+  };
+
+  const handleNavigateToSettings = () => {
+    setActiveTab("settings");
   };
 
   return (
@@ -138,9 +217,35 @@ const Redefine: React.FC = () => {
             </nav>
           </div>
 
-          {activeTab === "search" && <SearchBar />}
-          {activeTab === "history" && <HistoryPanel />}
-          {activeTab === "settings" && <SettingsPanel />}
+          <div style={{ display: activeTab === "search" ? "block" : "none" }}>
+            <SearchBar
+              query={query}
+              setQuery={setQuery}
+              wordData={wordData}
+              setWordData={setWordData}
+              isStreaming={isStreaming}
+              setIsStreaming={setIsStreaming}
+              streamedText={streamedText}
+              setStreamedText={setStreamedText}
+              exportedFlashcards={exportedFlashcards}
+              setExportedFlashcards={setExportedFlashcards}
+              searchHistory={searchHistory}
+              setSearchHistory={setSearchHistory}
+              onNavigateToSettings={handleNavigateToSettings}
+            />
+          </div>
+          <div style={{ display: activeTab === "history" ? "block" : "none" }}>
+            <HistoryPanel
+              searchHistory={searchHistory}
+              setSearchHistory={setSearchHistory}
+              exportedFlashcards={exportedFlashcards}
+              setExportedFlashcards={setExportedFlashcards}
+              onNavigateToSearch={handleNavigateToSearch}
+            />
+          </div>
+          <div style={{ display: activeTab === "settings" ? "block" : "none" }}>
+            <SettingsPanel />
+          </div>
         </div>
       </div>
     </div>

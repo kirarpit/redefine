@@ -2,26 +2,23 @@ import { useState } from "react";
 import { Flashcard, SearchHistoryItem } from "../types";
 
 type HistoryPanelProps = {
-  // Add any props if needed
+  searchHistory: SearchHistoryItem[];
+  setSearchHistory: React.Dispatch<React.SetStateAction<SearchHistoryItem[]>>;
+  exportedFlashcards: Flashcard[];
+  setExportedFlashcards: React.Dispatch<React.SetStateAction<Flashcard[]>>;
+  onNavigateToSearch: (word: string) => void;
 };
 
-const HistoryPanel: React.FC<HistoryPanelProps> = () => {
-  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>(
-    () => {
-      const history = localStorage.getItem("searchHistory");
-      return history ? JSON.parse(history) : [];
-    }
-  );
-
-  const [savedFlashcards, setSavedFlashcards] = useState<Flashcard[]>(() => {
-    const saved = localStorage.getItem("savedFlashcards");
-    return saved ? JSON.parse(saved) : [];
-  });
-
+const HistoryPanel: React.FC<HistoryPanelProps> = ({
+  searchHistory,
+  setSearchHistory,
+  exportedFlashcards,
+  setExportedFlashcards,
+  onNavigateToSearch,
+}) => {
   const [activeTab, setActiveTab] = useState<"history" | "flashcards">(
     "history"
   );
-  const [selectedFlashcards, setSelectedFlashcards] = useState<number[]>([]);
 
   const clearHistory = (): void => {
     const userConfirmed = window.confirm(
@@ -34,43 +31,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = () => {
   };
 
   const removeFlashcard = (index: number): void => {
-    const newFlashcards = [...savedFlashcards];
+    const newFlashcards = [...exportedFlashcards];
     newFlashcards.splice(index, 1);
-    setSavedFlashcards(newFlashcards);
-    localStorage.setItem("savedFlashcards", JSON.stringify(newFlashcards));
-  };
-
-  const toggleSelectFlashcard = (index: number): void => {
-    if (selectedFlashcards.includes(index)) {
-      setSelectedFlashcards(selectedFlashcards.filter((i) => i !== index));
-    } else {
-      setSelectedFlashcards([...selectedFlashcards, index]);
-    }
-  };
-
-  const exportSelectedFlashcards = (): void => {
-    if (selectedFlashcards.length === 0) {
-      alert("Please select at least one flashcard to export");
-      return;
-    }
-
-    const flashcardsToExport = selectedFlashcards.map(
-      (index) => savedFlashcards[index]
-    );
-
-    const ankiFormat = flashcardsToExport
-      .map((card) => `${card.front}\t${card.back}`)
-      .join("\n");
-
-    const element = document.createElement("a");
-    const file = new Blob([ankiFormat], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = "redefine_flashcards.txt";
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-
-    setSelectedFlashcards([]);
+    setExportedFlashcards(newFlashcards);
+    localStorage.setItem("exportedFlashcards", JSON.stringify(newFlashcards));
   };
 
   const formatDate = (dateString: string): string => {
@@ -81,6 +45,12 @@ const HistoryPanel: React.FC<HistoryPanelProps> = () => {
       year: "numeric",
     });
   };
+
+  // Sort flashcards by exportedAt date in descending order (newest first)
+  const sortedFlashcards = [...exportedFlashcards].sort(
+    (a, b) =>
+      new Date(b.exportedAt).getTime() - new Date(a.exportedAt).getTime()
+  );
 
   return (
     <div>
@@ -103,7 +73,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = () => {
               : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
           }`}
         >
-          Saved Flashcards
+          Exported Flashcards
         </button>
       </div>
 
@@ -157,26 +127,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = () => {
                     className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
                     onClick={() => {
                       // Navigate to search tab and search for this word
-                      const button = document.querySelector(
-                        'button[onClick="() => setActiveTab(\\"search\\")"]'
-                      ) as HTMLButtonElement | null;
-                      if (button) button.click();
-
-                      setTimeout(() => {
-                        const searchBar = document.querySelector(
-                          'input[placeholder="Search for a word..."]'
-                        ) as HTMLInputElement | null;
-                        if (searchBar) {
-                          searchBar.value = item.word;
-                          searchBar.dispatchEvent(
-                            new Event("change", { bubbles: true })
-                          );
-                          const searchButton = document.querySelector(
-                            'button[aria-label="Search"]'
-                          ) as HTMLButtonElement | null;
-                          if (searchButton) searchButton.click();
-                        }
-                      }, 100);
+                      onNavigateToSearch(item.word);
                     }}
                   >
                     <svg
@@ -203,29 +154,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = () => {
 
       {activeTab === "flashcards" && (
         <div>
-          <div className="flex justify-between items-center mb-4">
+          <div className="mb-4">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-              Your Saved Flashcards ({savedFlashcards.length})
+              Your Exported Flashcards ({exportedFlashcards.length})
             </h3>
-            {selectedFlashcards.length > 0 && (
-              <div className="flex space-x-3">
-                <button
-                  onClick={exportSelectedFlashcards}
-                  className="text-sm text-blue-500 dark:text-blue-400 font-medium hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
-                >
-                  Export Selected ({selectedFlashcards.length})
-                </button>
-                <button
-                  onClick={() => setSelectedFlashcards([])}
-                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                >
-                  Clear Selection
-                </button>
-              </div>
-            )}
           </div>
 
-          {savedFlashcards.length === 0 ? (
+          {exportedFlashcards.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -241,35 +176,23 @@ const HistoryPanel: React.FC<HistoryPanelProps> = () => {
                   d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z"
                 />
               </svg>
-              <p>You haven't saved any flashcards yet</p>
+              <p>You haven't exported any flashcards yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {savedFlashcards.map((card, index) => (
+              {sortedFlashcards.map((card, index) => (
                 <div
                   key={index}
-                  className={`border rounded-lg overflow-hidden ${
-                    selectedFlashcards.includes(index)
-                      ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-200 dark:border-gray-700"
-                  }`}
+                  className="border rounded-lg overflow-hidden border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex p-4">
-                    <div className="flex items-center pr-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedFlashcards.includes(index)}
-                        onChange={() => toggleSelectFlashcard(index)}
-                        className="h-4 w-4 text-blue-500 dark:text-blue-400 rounded border-gray-300 dark:border-gray-600 focus:ring focus:ring-blue-500/20 dark:focus:ring-blue-400/20"
-                      />
-                    </div>
                     <div className="flex-1">
                       <div className="flex items-center mb-2">
                         <div className="text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded px-2 py-0.5 mr-2">
                           {card.word}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Saved {formatDate(card.savedAt)}
+                          Exported {formatDate(card.exportedAt)}
                         </div>
                       </div>
                       <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
@@ -301,17 +224,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {savedFlashcards.length > 0 && (
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => exportSelectedFlashcards()}
-                className="bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-              >
-                Export All to Anki
-              </button>
             </div>
           )}
         </div>
