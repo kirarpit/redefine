@@ -1,0 +1,11 @@
+/* Custom styles to fix background color during scrolling */
+body {
+  margin: 0;
+  padding: 0;
+  background-color: rgb(249, 250, 251); /* bg-gray-50 */
+}
+
+/* Apply dark mode background when dark class is present */
+:root.dark body {
+  background-color: rgb(17, 24, 39); /* bg-gray-900 */
+}
