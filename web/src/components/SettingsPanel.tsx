@@ -75,6 +75,7 @@ const InputField: FC<InputFieldProps> = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      autoComplete="off"
       className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
     />
   </div>
@@ -233,37 +234,64 @@ const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
   return (
     <Card title="Add New Model">
       <div className="space-y-3">
-        <InputField
-          label="Model Name"
-          value={newModelName}
-          onChange={(e) => setNewModelName(e.target.value)}
-          placeholder="e.g., Claude 3 Opus (optional)"
-          required={false}
-        />
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Model Name
+          </label>
+          <input
+            type="text"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            placeholder="e.g., Claude 3 Opus (optional)"
+            autoComplete="off"
+            data-form-type="other"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          />
+        </div>
 
-        <InputField
-          label="Model ID"
-          value={newModelId}
-          onChange={(e) => setNewModelId(e.target.value)}
-          placeholder="e.g., claude-3-opus-20240229"
-          required
-        />
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Model ID*
+          </label>
+          <input
+            type="text"
+            value={newModelId}
+            onChange={(e) => setNewModelId(e.target.value)}
+            placeholder="e.g., claude-3-opus-20240229"
+            autoComplete="off"
+            data-form-type="other"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          />
+        </div>
 
-        <InputField
-          label="API Key"
-          type="password"
-          value={newModelApiKey}
-          onChange={(e) => setNewModelApiKey(e.target.value)}
-          placeholder="Enter your API key"
-          required
-        />
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            API Key*
+          </label>
+          <input
+            type="text"
+            value={newModelApiKey}
+            onChange={(e) => setNewModelApiKey(e.target.value)}
+            placeholder="Enter your API key"
+            autoComplete="off"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          />
+        </div>
 
-        <InputField
-          label="API Endpoint (Optional)"
-          value={newModelApiEndpoint}
-          onChange={(e) => setNewModelApiEndpoint(e.target.value)}
-          placeholder="https://api.example.com/v1/chat/completions"
-        />
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            API Endpoint (Optional)
+          </label>
+          <input
+            type="text"
+            value={newModelApiEndpoint}
+            onChange={(e) => setNewModelApiEndpoint(e.target.value)}
+            placeholder="https://api.example.com/v1/chat/completions"
+            autoComplete="off"
+            data-form-type="other"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          />
+        </div>
 
         <div className="pt-1">
           <Button
