@@ -1,4 +1,4 @@
-import { useState, useEffect, FC, ReactNode } from "react";
+import { useState, useEffect, FC, ReactNode, useRef } from "react";
 import { LLMModel } from "../types";
 
 // Types
@@ -342,34 +342,54 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
   promptTemplate,
   onPromptChange,
   onResetToDefault,
-}) => (
-  <div className="mb-4">
-    <div className="flex justify-between items-center mb-2">
-      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Prompt Template
-      </label>
-      <button
-        onClick={onResetToDefault}
-        className="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
-      >
-        Reset to Default
-      </button>
+}) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Adjust textarea height based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = "auto";
+
+    // Calculate new height but set a maximum limit of 400px
+    const newHeight = Math.min(textarea.scrollHeight, 400);
+
+    // Set the height with a minimum of 150px
+    textarea.style.height = `${Math.max(150, newHeight)}px`;
+  }, [promptTemplate]);
+
+  return (
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Prompt Template
+        </label>
+        <button
+          onClick={onResetToDefault}
+          className="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
+        >
+          Reset to Default
+        </button>
+      </div>
+      <textarea
+        ref={textareaRef}
+        value={promptTemplate}
+        onChange={(e) => onPromptChange(e.target.value)}
+        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 min-h-[150px] max-h-[400px] overflow-y-auto"
+        placeholder="Enter your prompt template here. Use {word} as a placeholder for the searched word."
+      />
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        Use{" "}
+        <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-blue-500 dark:text-blue-400">
+          {"{word}"}
+        </code>{" "}
+        as a placeholder for the search term.
+      </p>
     </div>
-    <textarea
-      value={promptTemplate}
-      onChange={(e) => onPromptChange(e.target.value)}
-      className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 h-40"
-      placeholder="Enter your prompt template here. Use {word} as a placeholder for the searched word."
-    />
-    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-      Use{" "}
-      <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-blue-500 dark:text-blue-400">
-        {"{word}"}
-      </code>{" "}
-      as a placeholder for the search term.
-    </p>
-  </div>
-);
+  );
+};
 
 type TestPromptSectionProps = {
   testWord: string;
