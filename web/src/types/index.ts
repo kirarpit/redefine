@@ -23,4 +23,6 @@ export type SearchHistoryItem = {
 export type LLMModel = {
   id: string;
   name: string;
+  apiKey: string;
+  apiEndpoint?: string;
 }; 
