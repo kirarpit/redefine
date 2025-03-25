@@ -1,0 +1,9 @@
+flask
+flask-cors
+litellm
+python-dotenv
+requests
+gunicorn
+pymongo
+pydantic
+cryptography 
