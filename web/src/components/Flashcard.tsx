@@ -107,7 +107,7 @@ export const useFlashcardManager = (
     }
   };
 
-  const handleExportToAnki = (): void => {
+  const handleExportToAnki = async (): Promise<void> => {
     if (!wordData || "error" in wordData || !wordData.flashcards) return;
 
     const flashcardsToExport = wordData.flashcards.filter((flashcard) =>
@@ -135,9 +135,31 @@ export const useFlashcardManager = (
       })),
     ];
 
-    setExportedFlashcards(newExportedFlashcards);
-
     try {
+      // Make API call to save flashcards in the database
+      const response = await fetch("/api/flashcards/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          flashcards: flashcardsToExport.map((card) => ({
+            front: card.front,
+            back: card.back,
+            word: wordData.word || "",
+            exportedAt: new Date().toISOString(),
+          })),
+          format: "anki",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save flashcards to database");
+      }
+
+      // If successful, update the local state
+      setExportedFlashcards(newExportedFlashcards);
+
       const existingExportsString = localStorage.getItem("ankiExports") || "[]";
       const existingExports = JSON.parse(existingExportsString);
 

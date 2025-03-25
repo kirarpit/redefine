@@ -180,7 +180,7 @@ const Redefine: React.FC = () => {
                 redefine
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Discover words in an elegant way.
+                Learn words in an elegant way.
               </p>
             </div>
             <button

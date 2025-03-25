@@ -30,7 +30,31 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     }
   };
 
-  const removeFlashcard = (index: number): void => {
+  const removeFlashcard = async (index: number): Promise<void> => {
+    const flashcardToRemove = exportedFlashcards[index];
+
+    try {
+      // Make API call to delete the flashcard from the database
+      const response = await fetch("/api/flashcards/", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          front: flashcardToRemove.front,
+          back: flashcardToRemove.back,
+          word: flashcardToRemove.word,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to delete flashcard from database");
+      }
+    } catch (error) {
+      console.error("Error deleting flashcard:", error);
+    }
+
+    // Update local state regardless of API success
     const newFlashcards = [...exportedFlashcards];
     newFlashcards.splice(index, 1);
     setExportedFlashcards(newFlashcards);

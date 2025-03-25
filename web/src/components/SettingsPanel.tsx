@@ -82,7 +82,7 @@ const InputField: FC<InputFieldProps> = ({
 );
 
 type ButtonProps = {
-  onClick: () => void;
+  onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   variant?: "primary" | "secondary" | "danger";
   children: ReactNode;
@@ -148,16 +148,28 @@ const Toggle: FC<ToggleProps> = ({ label, id, defaultChecked }) => (
 type ModelListProps = {
   models: LLMModel[];
   onRemove: (id: string) => void;
+  selectedModel: string;
+  onSelectModel: (id: string) => void;
 };
 
-const ModelList: FC<ModelListProps> = ({ models, onRemove }) => (
+const ModelList: FC<ModelListProps> = ({
+  models,
+  onRemove,
+  selectedModel,
+  onSelectModel,
+}) => (
   <div className="space-y-3">
     {models.map((model) => (
       <div
         key={model.id}
-        className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700/50 rounded-md"
+        className={`flex items-center justify-between py-2 px-3 rounded-md border-2 transition-colors cursor-pointer ${
+          model.id === selectedModel
+            ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+            : "border-transparent bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/70"
+        }`}
+        onClick={() => onSelectModel(model.id)}
       >
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
             {model.name}
           </p>
@@ -165,9 +177,36 @@ const ModelList: FC<ModelListProps> = ({ models, onRemove }) => (
             API Key: ••••••••{model.apiKey.slice(-4)}
           </p>
         </div>
-        <Button onClick={() => onRemove(model.id)} variant="danger">
-          Remove
-        </Button>
+        <div className="flex items-center gap-2">
+          {model.id === selectedModel && (
+            <div className="flex items-center text-xs text-blue-700 dark:text-blue-300">
+              <svg
+                className="w-4 h-4 mr-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Active
+            </div>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent triggering the parent onClick
+              onRemove(model.id);
+            }}
+            className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium bg-transparent rounded-md px-3 py-1"
+          >
+            Remove
+          </button>
+        </div>
       </div>
     ))}
   </div>
@@ -398,6 +437,7 @@ type TestPromptSectionProps = {
   isGenerating: boolean;
   generatedDefinition: string;
   selectedModel: string;
+  modelName: string;
 };
 
 const TestPromptSection: FC<TestPromptSectionProps> = ({
@@ -407,11 +447,19 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
   isGenerating,
   generatedDefinition,
   selectedModel,
+  modelName,
 }) => (
   <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-      Test Your Prompt
-    </h4>
+    <div className="flex justify-between items-center mb-3">
+      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        Test Your Prompt
+      </h4>
+      {selectedModel && (
+        <div className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1">
+          Using: <span className="font-medium">{modelName}</span>
+        </div>
+      )}
+    </div>
 
     <div className="flex gap-2 mb-4">
       <input
@@ -577,14 +625,19 @@ Keep the tone conversational but informative, as if explaining to a curious frie
         description={
           models.length === 0
             ? "To get started with Redefine, add at least one AI model with your API key."
-            : "Manage your AI models and API connections."
+            : "Manage your AI models and API connections. Click on a model to select it as active."
         }
       >
         {!isAddingModel ? (
           <div className="space-y-4">
             {models.length > 0 && (
               <Card title="Your Models">
-                <ModelList models={models} onRemove={handleRemoveModel} />
+                <ModelList
+                  models={models}
+                  onRemove={handleRemoveModel}
+                  selectedModel={selectedModel}
+                  onSelectModel={setSelectedModel}
+                />
               </Card>
             )}
 
@@ -603,25 +656,8 @@ Keep the tone conversational but informative, as if explaining to a curious frie
       {models.length > 0 && (
         <Section
           title="Definition Generation Settings"
-          description="Customize how definitions are generated by editing the prompt template and selecting your preferred AI model."
+          description="Customize how definitions are generated by editing the prompt template. The selected model (highlighted above) will be used for testing and generation."
         >
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Language Model
-            </label>
-            <select
-              value={selectedModel}
-              onChange={handleModelChange}
-              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-            >
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <PromptTemplateEditor
             promptTemplate={promptTemplate}
             onPromptChange={setPromptTemplate}
@@ -635,6 +671,9 @@ Keep the tone conversational but informative, as if explaining to a curious frie
             isGenerating={isGenerating}
             generatedDefinition={generatedDefinition}
             selectedModel={selectedModel}
+            modelName={
+              models.find((m) => m.id === selectedModel)?.name || selectedModel
+            }
           />
         </Section>
       )}
