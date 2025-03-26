@@ -1,5 +1,6 @@
-import { useState, FC, ReactNode } from "react";
+import { useState, FC } from "react";
 import { LLMModel } from "../types";
+import { Card, Button } from "./UIComponents";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
@@ -105,64 +106,6 @@ export const testModel = async (
     console.error("Error testing model:", error);
     throw error;
   }
-};
-
-// Reusable UI Components
-type CardProps = {
-  title?: string;
-  children: ReactNode;
-  className?: string;
-};
-
-export const Card: FC<CardProps> = ({ title, children, className = "" }) => (
-  <div
-    className={`bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md p-4 ${className}`}
-  >
-    {title && (
-      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-        {title}
-      </h4>
-    )}
-    {children}
-  </div>
-);
-
-type ButtonProps = {
-  onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
-  disabled?: boolean;
-  variant?: "primary" | "secondary" | "danger";
-  children: ReactNode;
-  className?: string;
-};
-
-export const Button: FC<ButtonProps> = ({
-  onClick,
-  disabled = false,
-  variant = "primary",
-  children,
-  className = "",
-}) => {
-  const baseStyles =
-    "rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
-
-  const variantStyles = {
-    primary:
-      "bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-500",
-    secondary:
-      "bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200",
-    danger:
-      "text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300",
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`${baseStyles} ${variantStyles[variant]} ${className}`}
-    >
-      {children}
-    </button>
-  );
 };
 
 // Model List Component
@@ -441,26 +384,3 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
     </Card>
   );
 };
-
-// Section component for layout
-type SectionProps = {
-  title: string;
-  description?: string;
-  children: ReactNode;
-};
-
-export const Section: FC<SectionProps> = ({ title, description, children }) => (
-  <div className="space-y-6">
-    <div>
-      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-        {title}
-      </h3>
-      {description && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          {description}
-        </p>
-      )}
-      {children}
-    </div>
-  </div>
-);

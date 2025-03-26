@@ -1,16 +1,14 @@
-import { useState, useEffect, FC, ReactNode, useRef } from "react";
+import { useState, useEffect, FC, useRef } from "react";
 import { LLMModel } from "../types";
 import {
   fetchModels,
   addModel,
   deleteModel,
   testModel,
-  Card,
-  Button,
   ModelList,
   AddModelForm,
-  Section,
 } from "./ModelConfiguration";
+import { Card, Button, Section, Toggle } from "./UIComponents";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
@@ -65,32 +63,6 @@ const fetchPromptTemplate = async (
 type SettingsPanelProps = {
   // Add any props if needed
 };
-
-// Reusable UI Components
-type ToggleProps = {
-  label: string;
-  id: string;
-  defaultChecked?: boolean;
-};
-
-const Toggle: FC<ToggleProps> = ({ label, id, defaultChecked }) => (
-  <div className="flex items-center justify-between">
-    <label className="text-sm text-gray-700 dark:text-gray-300">{label}</label>
-    <div className="relative inline-block w-10 mr-2 align-middle select-none">
-      <input
-        type="checkbox"
-        name="toggle"
-        id={id}
-        className="absolute block w-6 h-6 bg-white dark:bg-gray-600 rounded-full border-4 appearance-none cursor-pointer checked:right-0 checked:border-blue-500 dark:checked:border-blue-400 transition-all duration-200"
-        defaultChecked={defaultChecked}
-      />
-      <label
-        htmlFor={id}
-        className="block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-700 cursor-pointer"
-      />
-    </div>
-  </div>
-);
 
 // Feature Components
 type PromptTemplateEditorProps = {
@@ -309,7 +281,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     };
 
     loadInitialData();
-  }, []);
+  });
 
   // Persist selected model to localStorage
   useEffect(() => {
