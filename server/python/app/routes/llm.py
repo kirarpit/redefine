@@ -3,6 +3,7 @@ from app.models.schemas import LLMModel
 from app.utils.db_utils import get_llm_models, add_llm_model, delete_llm_model
 from app.utils.sanitize_utils import sanitize_input
 from app.utils.llm_utils import test_prompt
+import urllib.parse
 
 llm_bp = Blueprint("llm", __name__)
 
@@ -45,13 +46,14 @@ def create_model():
     return jsonify({"message": "Model added successfully"}), 201
 
 
-@llm_bp.route("/models/<model_id>", methods=["DELETE"])
+@llm_bp.route("/models/<path:model_id>", methods=["DELETE"])
 def remove_model(model_id):
-    """Delete an LLM model."""
     if not model_id:
         return jsonify({"error": "Model ID is required"}), 400
 
-    success = delete_llm_model(sanitize_input(model_id))
+    decoded_model_id = urllib.parse.unquote(model_id)
+
+    success = delete_llm_model(sanitize_input(decoded_model_id))
 
     if success:
         return jsonify({"message": "Model deleted successfully"}), 200

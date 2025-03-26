@@ -8,7 +8,12 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": "http://localhost:3000"}},
+        supports_credentials=True,  # only needed if you're using cookies/auth
+    )
 
     @app.route("/")
     def home():
@@ -26,7 +31,7 @@ def create_app():
             }
         )
 
-    # Import and register blueprints
+    # Register blueprints
     from app.routes.dictionary import dictionary_bp
     from app.routes.llm import llm_bp
     from app.routes.flashcards import flashcards_bp

@@ -89,9 +89,15 @@ const addModel = async (model: {
 
 const deleteModel = async (modelId: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/llm/models/${modelId}`, {
-      method: "DELETE",
-    });
+    // Encode the modelId to handle forward slashes
+    console.log("Deleting model", modelId);
+    const encodedModelId = encodeURIComponent(modelId);
+    const response = await fetch(
+      `${API_BASE_URL}/llm/models/${encodedModelId}`,
+      {
+        method: "DELETE",
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -831,8 +837,8 @@ Keep the tone conversational but informative, as if explaining to a curious frie
   const handleRemoveModel = async (modelId: string) => {
     if (window.confirm("Are you sure you want to remove this model?")) {
       try {
-        setModels((prev) => prev.filter((model) => model.id !== modelId));
         await deleteModel(modelId);
+        setModels((prev) => prev.filter((model) => model.id !== modelId));
 
         // If the removed model was selected, reset selection
         if (selectedModel === modelId) {
