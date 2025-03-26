@@ -13,4 +13,10 @@ CREATE TABLE IF NOT EXISTS llm_models (
     name TEXT NOT NULL,
     api_key TEXT NOT NULL,
     api_endpoint TEXT
+);
+
+-- Table for storing application settings
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
 ); 

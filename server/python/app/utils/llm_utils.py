@@ -64,7 +64,6 @@ def generate_definition(
 ) -> Dict[str, Any]:
     """Generate a definition, examples, and other metadata for a word using the selected model."""
 
-    # Use set_api_key function instead of duplicating the logic
     model = LLMModel(
         id=model_id,
         name=model_id,  # Frontend will provide the actual model ID

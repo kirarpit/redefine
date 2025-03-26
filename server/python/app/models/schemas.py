@@ -31,6 +31,10 @@ class LLMModel(BaseModel):
     apiEndpoint: Optional[str] = None
 
 
+class PromptTemplate(BaseModel):
+    template: str
+
+
 class AutosuggestResponse(BaseModel):
     suggestions: List[str]
 

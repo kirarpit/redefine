@@ -237,6 +237,45 @@ class DatabaseManager:
                 conn.commit()
                 return cursor.rowcount > 0
 
+    def get_prompt_template(self) -> Optional[str]:
+        """Get the prompt template from the app_settings table."""
+        with self.get_db_connection() as conn:
+            if not conn:
+                return None
+
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT value FROM app_settings WHERE key = 'prompt_template'"
+                )
+                result = cursor.fetchone()
+                return result[0] if result else None
+
+    def save_prompt_template(self, template: str) -> bool:
+        """Save or update the prompt template in the app_settings table."""
+        with self.get_db_connection() as conn:
+            if not conn:
+                return False
+
+            with conn.cursor() as cursor:
+                # Check if the prompt template setting already exists
+                cursor.execute(
+                    "SELECT key FROM app_settings WHERE key = 'prompt_template'"
+                )
+                exists = cursor.fetchone()
+
+                if exists:
+                    cursor.execute(
+                        "UPDATE app_settings SET value = %s WHERE key = 'prompt_template'",
+                        (template,),
+                    )
+                else:
+                    cursor.execute(
+                        "INSERT INTO app_settings (key, value) VALUES ('prompt_template', %s)",
+                        (template,),
+                    )
+                conn.commit()
+                return True
+
 
 # Create a singleton instance for global usage
 db = DatabaseManager()
@@ -265,3 +304,11 @@ def add_llm_model(model: LLMModel) -> Dict[str, Any]:
 
 def delete_llm_model(model_id: str) -> bool:
     return db.delete_llm_model(model_id)
+
+
+def get_prompt_template() -> Optional[str]:
+    return db.get_prompt_template()
+
+
+def save_prompt_template(template: str) -> bool:
+    return db.save_prompt_template(template)

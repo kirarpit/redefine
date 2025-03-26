@@ -21,6 +21,7 @@ def create_app():
                     "/api/dictionary/autosuggest",
                     "/api/flashcards",
                     "/api/llm/models",
+                    "/api/settings/prompt-template",
                 ],
             }
         )
@@ -29,9 +30,11 @@ def create_app():
     from app.routes.dictionary import dictionary_bp
     from app.routes.llm import llm_bp
     from app.routes.flashcards import flashcards_bp
+    from app.routes.settings import settings_bp
 
     app.register_blueprint(dictionary_bp, url_prefix="/api/dictionary")
     app.register_blueprint(llm_bp, url_prefix="/api/llm")
     app.register_blueprint(flashcards_bp, url_prefix="/api/flashcards")
+    app.register_blueprint(settings_bp, url_prefix="/api/settings")
 
     return app

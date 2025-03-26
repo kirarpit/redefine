@@ -18,8 +18,8 @@ def sanitize_input(text: Optional[str]) -> Optional[str]:
         return None
 
     # Remove any potentially dangerous characters
-    # Allow only alphanumeric, spaces, and basic punctuation
-    sanitized = re.sub(r'[^\w\s.,\-\'"]', "", text)
+    # Allow only alphanumeric, spaces, basic punctuation, and forward slashes
+    sanitized = re.sub(r'[^\w\s.,\-\'"\/]', "", text)
 
     # Also escape HTML to prevent XSS
     sanitized = html.escape(sanitized)

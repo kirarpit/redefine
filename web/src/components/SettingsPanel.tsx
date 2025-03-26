@@ -19,6 +19,44 @@ const fetchModels = async (): Promise<LLMModel[]> => {
   }
 };
 
+const savePromptTemplate = async (template: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/prompt-template`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ template }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP error! Status: ${response.status}`
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error saving prompt template:", error);
+    throw error;
+  }
+};
+
+const fetchPromptTemplate = async (): Promise<string | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/settings/prompt-template`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.template;
+  } catch (error) {
+    console.error("Error fetching prompt template:", error);
+    return null;
+  }
+};
+
 const addModel = async (model: {
   name: string;
   modelId: string;
@@ -300,6 +338,7 @@ const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
     success?: boolean;
     message?: string;
   } | null>(null);
+  const [modelIdError, setModelIdError] = useState("");
 
   const testApiConnection = () => {
     if (!newModelApiKey.trim()) {
@@ -327,15 +366,48 @@ const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
     }, 1500);
   };
 
+  // Validate model ID format (provider/model-id)
+  const validateModelId = (id: string) => {
+    if (!id.includes("/")) {
+      setModelIdError(
+        "Model ID must include provider (e.g., anthropic/claude-3-sonnet-20240229)"
+      );
+      return false;
+    }
+    setModelIdError("");
+    return true;
+  };
+
+  const handleModelIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const id = e.target.value;
+    setNewModelId(id);
+    validateModelId(id);
+  };
+
   const handleAddModel = () => {
     if (!newModelId.trim() || !newModelApiKey.trim()) {
       alert("Please fill in all required fields");
       return;
     }
 
+    if (!validateModelId(newModelId)) {
+      return;
+    }
+
+    // Extract model name from the part after the forward slash if name is empty
+    let modelName = newModelName.trim();
+    if (!modelName) {
+      const parts = newModelId.split("/");
+      if (parts.length > 1) {
+        modelName = parts[1];
+      } else {
+        modelName = newModelId;
+      }
+    }
+
     const newModel: LLMModel = {
       id: newModelId,
-      name: newModelName.trim() || newModelId,
+      name: modelName,
       apiKey: newModelApiKey,
       apiEndpoint: newModelApiEndpoint.trim() || undefined,
     };
@@ -359,6 +431,9 @@ const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
             data-form-type="other"
             className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            If left empty, the model name will be extracted from the Model ID.
+          </p>
         </div>
 
         <div>
@@ -368,12 +443,25 @@ const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
           <input
             type="text"
             value={newModelId}
-            onChange={(e) => setNewModelId(e.target.value)}
-            placeholder="e.g., claude-3-opus-20240229"
+            onChange={handleModelIdChange}
+            placeholder="e.g., anthropic/claude-3-opus-20240229"
             autoComplete="off"
             data-form-type="other"
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+            className={`w-full bg-white dark:bg-gray-800 border ${
+              modelIdError
+                ? "border-red-500 dark:border-red-400"
+                : "border-gray-300 dark:border-gray-700"
+            } rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400`}
           />
+          {modelIdError && (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+              {modelIdError}
+            </p>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Must include provider name (e.g.,
+            anthropic/claude-3-sonnet-20240229)
+          </p>
         </div>
 
         <div>
@@ -448,12 +536,20 @@ type PromptTemplateEditorProps = {
   promptTemplate: string;
   onPromptChange: (value: string) => void;
   onResetToDefault: () => void;
+  onSaveTemplate: (template: string) => Promise<void>;
+  isSaving: boolean;
+  saveError: string | null;
+  saveSuccess: boolean;
 };
 
 const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
   promptTemplate,
   onPromptChange,
   onResetToDefault,
+  onSaveTemplate,
+  isSaving,
+  saveError,
+  saveSuccess,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -472,33 +568,75 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
     textarea.style.height = `${Math.max(150, newHeight)}px`;
   }, [promptTemplate]);
 
+  const handleSave = () => {
+    onSaveTemplate(promptTemplate);
+  };
+
+  const hasChanges = true; // In a real implementation, this would compare with the initial value
+
   return (
-    <div className="mb-4">
-      <div className="flex justify-between items-center mb-2">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+      <div className="flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-800/70 border-b border-gray-200 dark:border-gray-700">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Prompt Template
         </label>
-        <button
-          onClick={onResetToDefault}
-          className="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300"
-        >
-          Reset to Default
-        </button>
+        <div className="flex items-center space-x-2">
+          {saveSuccess && (
+            <span className="text-xs text-green-500 dark:text-green-400 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md">
+              <svg
+                className="w-3 h-3 inline-block mr-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Saved!
+            </span>
+          )}
+          {saveError && (
+            <span className="text-xs text-red-500 dark:text-red-400 px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded-md">
+              Error: {saveError}
+            </span>
+          )}
+          <button
+            onClick={onResetToDefault}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            Reset to Default
+          </button>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            variant="primary"
+            className="ml-2 text-xs py-1 px-3"
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </Button>
+        </div>
       </div>
       <textarea
         ref={textareaRef}
         value={promptTemplate}
         onChange={(e) => onPromptChange(e.target.value)}
-        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 min-h-[150px] max-h-[400px] overflow-y-auto"
+        className="w-full bg-white dark:bg-gray-800 px-4 py-3 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 min-h-[150px] max-h-[400px] overflow-y-auto border-0"
         placeholder="Enter your prompt template here. Use {word} as a placeholder for the searched word."
       />
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        Use{" "}
-        <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-blue-500 dark:text-blue-400">
-          {"{word}"}
-        </code>{" "}
-        as a placeholder for the search term.
-      </p>
+      <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/70 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Use{" "}
+          <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-blue-500 dark:text-blue-400">
+            {"{word}"}
+          </code>{" "}
+          as a placeholder for the search term.
+        </p>
+      </div>
     </div>
   );
 };
@@ -571,10 +709,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 Keep the tone conversational but informative, as if explaining to a curious friend. Avoid overly academic language but don't oversimplify.`;
 
   // State variables
-  const [promptTemplate, setPromptTemplate] = useState(() => {
-    const saved = localStorage.getItem("promptTemplate");
-    return saved || DEFAULT_PROMPT_TEMPLATE;
-  });
+  const [promptTemplate, setPromptTemplate] = useState<string>(
+    DEFAULT_PROMPT_TEMPLATE
+  );
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [promptSaveError, setPromptSaveError] = useState<string | null>(null);
+  const [promptSaveSuccess, setPromptSaveSuccess] = useState(false);
 
   const [models, setModels] = useState<LLMModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -590,11 +730,12 @@ Keep the tone conversational but informative, as if explaining to a curious frie
   const [generatedDefinition, setGeneratedDefinition] = useState("");
   const [isAddingModel, setIsAddingModel] = useState(false);
 
-  // Fetch models from the backend API
+  // Fetch models and prompt template from the backend API
   useEffect(() => {
-    const loadModels = async () => {
+    const loadInitialData = async () => {
       setIsLoading(true);
       try {
+        // Fetch models
         const modelData = await fetchModels();
         setModels(modelData);
 
@@ -603,16 +744,25 @@ Keep the tone conversational but informative, as if explaining to a curious frie
           setSelectedModel(modelData[0].id);
         }
 
+        // Fetch prompt template
+        const savedTemplate = await fetchPromptTemplate();
+        if (savedTemplate) {
+          setPromptTemplate(savedTemplate);
+        } else {
+          // If no template in backend, use default
+          setPromptTemplate(DEFAULT_PROMPT_TEMPLATE);
+        }
+
         setError(null);
       } catch (err) {
-        setError("Failed to load models. Please try again later.");
-        console.error("Error loading models:", err);
+        setError("Failed to load initial data. Please try again later.");
+        console.error("Error loading initial data:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadModels();
+    loadInitialData();
   }, []);
 
   // Persist selected model to localStorage
@@ -620,10 +770,34 @@ Keep the tone conversational but informative, as if explaining to a curious frie
     localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
 
-  // Persist prompt template to localStorage
-  useEffect(() => {
-    localStorage.setItem("promptTemplate", promptTemplate);
-  }, [promptTemplate]);
+  // Handle saving prompt template to backend
+  const handleSavePromptTemplate = async (template: string) => {
+    setIsSavingPrompt(true);
+    setPromptSaveError(null);
+    setPromptSaveSuccess(false);
+
+    try {
+      await savePromptTemplate(template);
+      setPromptSaveSuccess(true);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setPromptSaveSuccess(false);
+      }, 3000);
+    } catch (error) {
+      setPromptSaveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to save prompt template"
+      );
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  };
+
+  const handlePromptChange = (newPrompt: string) => {
+    setPromptTemplate(newPrompt);
+  };
 
   const handleAddModel = async (newModel: LLMModel) => {
     // Check for duplicate IDs
@@ -682,6 +856,8 @@ Keep the tone conversational but informative, as if explaining to a curious frie
   const handleResetToDefault = () => {
     if (window.confirm("Reset to default prompt template?")) {
       setPromptTemplate(DEFAULT_PROMPT_TEMPLATE);
+      // Save default template to backend
+      handleSavePromptTemplate(DEFAULT_PROMPT_TEMPLATE);
     }
   };
 
@@ -795,8 +971,12 @@ Keep the tone conversational but informative, as if explaining to a curious frie
         >
           <PromptTemplateEditor
             promptTemplate={promptTemplate}
-            onPromptChange={setPromptTemplate}
+            onPromptChange={handlePromptChange}
             onResetToDefault={handleResetToDefault}
+            onSaveTemplate={handleSavePromptTemplate}
+            isSaving={isSavingPrompt}
+            saveError={promptSaveError}
+            saveSuccess={promptSaveSuccess}
           />
 
           <TestPromptSection
