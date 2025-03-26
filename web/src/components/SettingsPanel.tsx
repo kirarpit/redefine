@@ -20,6 +20,7 @@ const fetchModels = async (): Promise<LLMModel[]> => {
 };
 
 const savePromptTemplate = async (template: string): Promise<boolean> => {
+  console.log("Saving prompt template", template);
   try {
     const response = await fetch(`${API_BASE_URL}/settings/prompt-template`, {
       method: "POST",
@@ -43,9 +44,16 @@ const savePromptTemplate = async (template: string): Promise<boolean> => {
   }
 };
 
-const fetchPromptTemplate = async (): Promise<string | null> => {
+const fetchPromptTemplate = async (
+  getDefault: boolean = false
+): Promise<string | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/settings/prompt-template`);
+    // Append query parameter for getting default template if requested
+    const url = getDefault
+      ? `${API_BASE_URL}/settings/prompt-template?default=true`
+      : `${API_BASE_URL}/settings/prompt-template`;
+
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
@@ -704,20 +712,8 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
 
 // Main Component
 const SettingsPanel: React.FC<SettingsPanelProps> = () => {
-  // Default prompt template
-  const DEFAULT_PROMPT_TEMPLATE = `Provide a comprehensive definition for the word "{word}" that includes:
-1. Its meaning in plain, accessible language
-2. Contextual examples of how it's used
-3. Cultural or historical significance if relevant
-4. Common phrases or idioms it appears in
-5. Connections to related concepts
-
-Keep the tone conversational but informative, as if explaining to a curious friend. Avoid overly academic language but don't oversimplify.`;
-
   // State variables
-  const [promptTemplate, setPromptTemplate] = useState<string>(
-    DEFAULT_PROMPT_TEMPLATE
-  );
+  const [promptTemplate, setPromptTemplate] = useState<string>("");
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [promptSaveError, setPromptSaveError] = useState<string | null>(null);
   const [promptSaveSuccess, setPromptSaveSuccess] = useState(false);
@@ -754,9 +750,6 @@ Keep the tone conversational but informative, as if explaining to a curious frie
         const savedTemplate = await fetchPromptTemplate();
         if (savedTemplate) {
           setPromptTemplate(savedTemplate);
-        } else {
-          // If no template in backend, use default
-          setPromptTemplate(DEFAULT_PROMPT_TEMPLATE);
         }
 
         setError(null);
@@ -859,11 +852,31 @@ Keep the tone conversational but informative, as if explaining to a curious frie
     }
   };
 
-  const handleResetToDefault = () => {
+  const handleResetToDefault = async () => {
     if (window.confirm("Reset to default prompt template?")) {
-      setPromptTemplate(DEFAULT_PROMPT_TEMPLATE);
-      // Save default template to backend
-      handleSavePromptTemplate(DEFAULT_PROMPT_TEMPLATE);
+      try {
+        // Fetch the default template directly instead of saving an empty string
+        const defaultTemplate = await fetchPromptTemplate(true);
+        if (defaultTemplate) {
+          // Save the default template to the backend
+          await savePromptTemplate(defaultTemplate);
+
+          // Update local state
+          setPromptTemplate(defaultTemplate);
+          setPromptSaveSuccess(true);
+
+          // Clear success message after 3 seconds
+          setTimeout(() => {
+            setPromptSaveSuccess(false);
+          }, 3000);
+        }
+      } catch (error) {
+        setPromptSaveError(
+          error instanceof Error
+            ? error.message
+            : "Failed to reset prompt template"
+        );
+      }
     }
   };
 

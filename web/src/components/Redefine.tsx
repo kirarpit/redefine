@@ -77,7 +77,10 @@ const Redefine: React.FC = () => {
     return false;
   });
 
-  const [activeTab, setActiveTab] = useState<TabType>("search");
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const savedTab = localStorage.getItem("activeTab");
+    return savedTab ? (JSON.parse(savedTab) as TabType) : "search";
+  });
 
   // Lifted search state from SearchBar
   const [query, setQuery] = useState<string>("");
@@ -120,6 +123,10 @@ const Redefine: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
   }, [searchHistory]);
+
+  useEffect(() => {
+    localStorage.setItem("activeTab", JSON.stringify(activeTab));
+  }, [activeTab]);
 
   const toggleDarkMode = (): void => {
     setDarkMode((prev) => !prev);

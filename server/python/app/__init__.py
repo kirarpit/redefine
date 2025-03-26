@@ -12,7 +12,7 @@ def create_app():
     CORS(
         app,
         resources={r"/api/*": {"origins": "http://localhost:3000"}},
-        supports_credentials=True,  # only needed if you're using cookies/auth
+        supports_credentials=True,
     )
 
     @app.route("/")

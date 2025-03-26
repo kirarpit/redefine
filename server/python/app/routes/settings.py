@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.models.schemas import PromptTemplate
 from app.utils.db_utils import get_prompt_template, save_prompt_template
 from app.utils.sanitize_utils import sanitize_input
+import html
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -19,11 +20,24 @@ Keep the tone conversational but informative, as if explaining to a curious frie
 
 @settings_bp.route("/prompt-template", methods=["GET"])
 def get_template():
-    """Get the current prompt template."""
-    template = get_prompt_template()
-    if template is None:
+    """
+    Get the prompt template.
+
+    Query Parameters:
+        default (bool): If set to 'true', returns the default template regardless of what's in the database.
+    """
+    use_default = request.args.get("default", "").lower() == "true"
+
+    if use_default:
         template = DEFAULT_PROMPT_TEMPLATE
-        save_prompt_template(template)
+    else:
+        template = get_prompt_template()
+        if template is None:
+            template = DEFAULT_PROMPT_TEMPLATE
+            save_prompt_template(template)
+
+    template = html.unescape(template)
+
     return jsonify({"template": template}), 200
 
 
