@@ -59,14 +59,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
   );
 
   const isModelConfigured = (): boolean => {
-    const customModels = localStorage.getItem("customModels");
     const selectedModel = localStorage.getItem("selectedModel");
-
-    return !!(
-      customModels &&
-      JSON.parse(customModels).length > 0 &&
-      selectedModel
-    );
+    return !!selectedModel;
   };
 
   useEffect(() => {
