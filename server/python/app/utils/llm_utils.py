@@ -22,6 +22,43 @@ def set_api_key(model: LLMModel) -> None:
         litellm.set_api_key(model.apiKey, model.id)
 
 
+def test_prompt(model_info: Dict[str, Any], prompt: str) -> str:
+    """
+    Test a model with a custom prompt and return the raw text response.
+
+    Args:
+        model_info: Dictionary containing model configuration (id, apiKey, etc.)
+        prompt: The prompt to send to the model
+
+    Returns:
+        str: The raw text response from the model
+    """
+    # Create LLMModel object from dictionary
+    model = LLMModel(
+        id=model_info["id"],
+        name=model_info["name"],
+        apiKey=model_info["apiKey"],
+        apiEndpoint=model_info.get("apiEndpoint"),
+    )
+
+    set_api_key(model)
+
+    try:
+        response = completion(
+            model=model.id,
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.7,
+        )
+        content = response.choices[0].message.content
+        return content
+
+    except Exception as e:
+        error_msg = f"Error testing model: {str(e)}"
+        raise Exception(error_msg)
+
+
 def generate_definition(
     word: str, model_id: str, api_key: str, api_endpoint: Optional[str] = None
 ) -> Dict[str, Any]:

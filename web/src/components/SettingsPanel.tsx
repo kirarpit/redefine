@@ -1,6 +1,103 @@
 import { useState, useEffect, FC, ReactNode, useRef } from "react";
 import { LLMModel } from "../types";
 
+const API_BASE_URL = "http://localhost:5000/api";
+
+// API service functions
+const fetchModels = async (): Promise<LLMModel[]> => {
+  try {
+    console.log("Fetching models");
+    const response = await fetch(`${API_BASE_URL}/llm/models`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.models;
+  } catch (error) {
+    console.error("Error fetching models:", error);
+    return [];
+  }
+};
+
+const addModel = async (model: {
+  name: string;
+  modelId: string;
+  apiKey: string;
+  apiEndpoint?: string;
+}): Promise<boolean> => {
+  try {
+    console.log(model);
+    const response = await fetch(`${API_BASE_URL}/llm/models`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(model),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP error! Status: ${response.status}`
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error adding model:", error);
+    throw error;
+  }
+};
+
+const deleteModel = async (modelId: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/llm/models/${modelId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP error! Status: ${response.status}`
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting model:", error);
+    throw error;
+  }
+};
+
+const testModel = async (modelId: string, prompt: string): Promise<string> => {
+  try {
+    console.log("Testing model", modelId, prompt);
+    const response = await fetch(`${API_BASE_URL}/llm/test`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        modelId,
+        prompt,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP error! Status: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    return data.response;
+  } catch (error) {
+    console.error("Error testing model:", error);
+    throw error;
+  }
+};
+
 // Types
 type SettingsPanelProps = {
   // Add any props if needed
@@ -56,30 +153,6 @@ type InputFieldProps = {
   placeholder?: string;
   required?: boolean;
 };
-
-const InputField: FC<InputFieldProps> = ({
-  label,
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  required = false,
-}) => (
-  <div>
-    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-      {label}
-      {required && "*"}
-    </label>
-    <input
-      type={type}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      autoComplete="off"
-      className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-    />
-  </div>
-);
 
 type ButtonProps = {
   onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
@@ -503,10 +576,9 @@ Keep the tone conversational but informative, as if explaining to a curious frie
     return saved || DEFAULT_PROMPT_TEMPLATE;
   });
 
-  const [models, setModels] = useState<LLMModel[]>(() => {
-    const saved = localStorage.getItem("customModels");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [models, setModels] = useState<LLMModel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [selectedModel, setSelectedModel] = useState(() => {
     const saved = localStorage.getItem("selectedModel");
@@ -518,52 +590,90 @@ Keep the tone conversational but informative, as if explaining to a curious frie
   const [generatedDefinition, setGeneratedDefinition] = useState("");
   const [isAddingModel, setIsAddingModel] = useState(false);
 
-  // Persist state to localStorage
+  // Fetch models from the backend API
   useEffect(() => {
-    localStorage.setItem("promptTemplate", promptTemplate);
-  }, [promptTemplate]);
+    const loadModels = async () => {
+      setIsLoading(true);
+      try {
+        const modelData = await fetchModels();
+        setModels(modelData);
 
+        // If no model selected and we have models, select the first one
+        if (!selectedModel && modelData.length > 0) {
+          setSelectedModel(modelData[0].id);
+        }
+
+        setError(null);
+      } catch (err) {
+        setError("Failed to load models. Please try again later.");
+        console.error("Error loading models:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadModels();
+  }, []);
+
+  // Persist selected model to localStorage
   useEffect(() => {
     localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
 
+  // Persist prompt template to localStorage
   useEffect(() => {
-    localStorage.setItem("customModels", JSON.stringify(models));
-  }, [models]);
+    localStorage.setItem("promptTemplate", promptTemplate);
+  }, [promptTemplate]);
 
-  useEffect(() => {
-    // If no model is selected and we have models available, select the first one
-    if (!selectedModel && models.length > 0) {
-      setSelectedModel(models[0].id);
-    }
-  }, [selectedModel, models]);
-
-  // Event handlers
-  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedModel(e.target.value);
-  };
-
-  const handleAddModel = (newModel: LLMModel) => {
+  const handleAddModel = async (newModel: LLMModel) => {
     // Check for duplicate IDs
     if (models.some((model) => model.id === newModel.id)) {
       alert("A model with this ID already exists. Please use a unique ID.");
       return;
     }
 
-    setModels((prev) => [...prev, newModel]);
-    setSelectedModel(newModel.id);
-    setIsAddingModel(false);
+    try {
+      // Call API to add model
+      await addModel({
+        name: newModel.name,
+        modelId: newModel.id,
+        apiKey: newModel.apiKey,
+        apiEndpoint: newModel.apiEndpoint,
+      });
+
+      // Update local state after successful API call
+      setModels((prev) => [...prev, newModel]);
+      setSelectedModel(newModel.id);
+      setIsAddingModel(false);
+    } catch (error) {
+      alert(
+        `Failed to add model: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
   };
 
-  const handleRemoveModel = (modelId: string) => {
+  const handleRemoveModel = async (modelId: string) => {
     if (window.confirm("Are you sure you want to remove this model?")) {
-      setModels((prev) => prev.filter((model) => model.id !== modelId));
+      try {
+        setModels((prev) => prev.filter((model) => model.id !== modelId));
+        await deleteModel(modelId);
 
-      // If the removed model was selected, reset selection
-      if (selectedModel === modelId) {
-        const availableModels = models.filter((model) => model.id !== modelId);
-        setSelectedModel(
-          availableModels.length > 0 ? availableModels[0].id : ""
+        // If the removed model was selected, reset selection
+        if (selectedModel === modelId) {
+          const availableModels = models.filter(
+            (model) => model.id !== modelId
+          );
+          setSelectedModel(
+            availableModels.length > 0 ? availableModels[0].id : ""
+          );
+        }
+      } catch (error) {
+        alert(
+          `Failed to remove model: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`
         );
       }
     }
@@ -575,7 +685,7 @@ Keep the tone conversational but informative, as if explaining to a curious frie
     }
   };
 
-  const handleTestPrompt = () => {
+  const handleTestPrompt = async () => {
     if (!testWord.trim()) {
       alert("Please enter a word to test");
       return;
@@ -587,36 +697,61 @@ Keep the tone conversational but informative, as if explaining to a curious frie
     }
 
     setIsGenerating(true);
-    const finalPrompt = promptTemplate.replace("{word}", testWord);
-    const modelDetails = models.find((m) => m.id === selectedModel);
-
-    // Simulate API call with streaming response
-    let generatedText =
-      "An apple is a common round fruit with a red, green, or yellow skin and crisp, juicy flesh. Beyond being a healthy snack, apples are deeply embedded in our culture - from the 'apple of my eye' idiom describing someone precious to you, to the iconic Apple technology company, to the legendary story of Newton discovering gravity when an apple fell on his head. Apples symbolize knowledge, temptation, and simplicity in various contexts.\n\nPeople eat apples raw, baked into pies, pressed into cider, or cooked into sauce. The phrase 'an apple a day keeps the doctor away' highlights its reputation for healthfulness. In literature and mythology, apples appear in stories from Snow White to the Garden of Eden.\n\nThe versatility of apples extends to phrases like 'apple of discord' (something causing trouble), 'comparing apples and oranges' (comparing unlike things), and 'upsetting the apple cart' (disturbing established order).";
-
-    if (testWord.toLowerCase() !== "apple") {
-      generatedText =
-        "Generating definition for '" +
-        testWord +
-        "' using " +
-        (modelDetails?.name || selectedModel) +
-        "...\n\nThis would typically call an actual LLM API with your custom prompt template, but we're showing a simulation for demonstration purposes.\n\nYour prompt template would be applied to the word '" +
-        testWord +
-        "' and sent to the selected model for processing.";
-    }
-
     setGeneratedDefinition("");
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index < generatedText.length) {
-        setGeneratedDefinition((prev) => prev + generatedText.charAt(index));
-        index++;
-      } else {
-        clearInterval(interval);
-        setIsGenerating(false);
-      }
-    }, 10);
+
+    const finalPrompt = promptTemplate.replace("{word}", testWord);
+
+    try {
+      const response = await testModel(selectedModel, finalPrompt);
+
+      let index = 0;
+      const interval = setInterval(() => {
+        if (index < response.length) {
+          setGeneratedDefinition((prev) => prev + response.charAt(index));
+          index++;
+        } else {
+          clearInterval(interval);
+          setIsGenerating(false);
+        }
+      }, 10);
+    } catch (error) {
+      setIsGenerating(false);
+      setGeneratedDefinition(
+        `Error: ${
+          error instanceof Error
+            ? error.message
+            : "Failed to generate definition"
+        }`
+      );
+      console.error("Error testing prompt:", error);
+    }
   };
+
+  // Display loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Display error state
+  if (error) {
+    return (
+      <div className="py-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 text-center">
+          <p className="text-red-600 dark:text-red-400">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-3 text-sm bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 px-3 py-1 rounded-md hover:bg-red-200 dark:hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -656,7 +791,7 @@ Keep the tone conversational but informative, as if explaining to a curious frie
       {models.length > 0 && (
         <Section
           title="Definition Generation Settings"
-          description="Customize how definitions are generated by editing the prompt template. The selected model (highlighted above) will be used for testing and generation."
+          description="Customize how definitions are generated by editing the prompt template."
         >
           <PromptTemplateEditor
             promptTemplate={promptTemplate}
