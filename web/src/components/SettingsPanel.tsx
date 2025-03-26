@@ -105,8 +105,6 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
     onSaveTemplate(promptTemplate);
   };
 
-  const hasChanges = true; // In a real implementation, this would compare with the initial value
-
   return (
     <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       <div className="flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-800/70 border-b border-gray-200 dark:border-gray-700">
