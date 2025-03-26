@@ -258,10 +258,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
         const modelData = await fetchModels();
         setModels(modelData);
 
-        // If no model selected and we have models, select the first one
-        if (!selectedModel && modelData.length > 0) {
-          setSelectedModel(modelData[0].id);
-        }
+        // Use a function form of setState to get latest state
+        setSelectedModel((currentSelected) => {
+          if (!currentSelected && modelData.length > 0) {
+            return modelData[0].id;
+          }
+          return currentSelected;
+        });
 
         // Fetch prompt template
         const savedTemplate = await fetchPromptTemplate();
@@ -279,7 +282,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     };
 
     loadInitialData();
-  });
+  }, []);
 
   // Persist selected model to localStorage
   useEffect(() => {
