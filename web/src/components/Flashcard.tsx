@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { DictionaryEntry, Flashcard } from "../types";
+import { ExplanationEntry, Flashcard } from "../types";
 
 // Types
 export type FlashcardStateType = {
@@ -24,10 +24,10 @@ export type FlashcardStateType = {
 
 // Hook for managing flashcard state and operations
 export const useFlashcardManager = (
-  wordData: DictionaryEntry | { word: string; error: boolean } | null,
+  wordData: ExplanationEntry | { query: string; error: boolean } | null,
   setWordData: React.Dispatch<
     React.SetStateAction<
-      DictionaryEntry | { word: string; error: boolean } | null
+      ExplanationEntry | { query: string; error: boolean } | null
     >
   >,
   exportedFlashcards: Flashcard[],
@@ -130,7 +130,7 @@ export const useFlashcardManager = (
       ...exportedFlashcards,
       ...flashcardsToExport.map((card) => ({
         ...card,
-        word: wordData.word || "",
+        query: wordData.query || "",
         exportedAt: new Date().toISOString(),
       })),
     ];
@@ -146,7 +146,7 @@ export const useFlashcardManager = (
           flashcards: flashcardsToExport.map((card) => ({
             front: card.front,
             back: card.back,
-            word: wordData.word || "",
+            query: wordData.query || "",
             exportedAt: new Date().toISOString(),
           })),
           format: "anki",
@@ -166,7 +166,7 @@ export const useFlashcardManager = (
       const newExport = {
         exportId: Date.now().toString(),
         exportDate: new Date().toISOString(),
-        word: wordData.word,
+        query: wordData.query,
         flashcards: flashcardsToExport.map((card) => ({
           front: card.front,
           back: card.back,
@@ -316,7 +316,7 @@ export const useFlashcardManager = (
 
 // Flashcard List Component
 type FlashcardListProps = {
-  wordData: DictionaryEntry | { word: string; error: boolean } | null;
+  wordData: ExplanationEntry | { query: string; error: boolean } | null;
   flashcardState: FlashcardStateType;
   isFlashcardSelected: (flashcard: { front: string; back: string }) => boolean;
   handleExportToAnki: () => void;

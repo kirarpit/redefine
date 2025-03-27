@@ -18,7 +18,7 @@ def create_flashcard():
     data = request.json
 
     # Validate required fields
-    required_fields = ["front", "back", "word"]
+    required_fields = ["front", "back", "query"]
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"Missing required field: {field}"}), 400
@@ -27,7 +27,7 @@ def create_flashcard():
     flashcard = Flashcard(
         front=data["front"],
         back=data["back"],
-        word=data["word"],
+        query=data["query"],
         exportedAt=datetime.now().isoformat(),
     )
 
@@ -43,13 +43,13 @@ def remove_flashcard():
     data = request.json
 
     # Validate required fields
-    required_fields = ["front", "back", "word"]
+    required_fields = ["front", "back", "query"]
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"Missing required field: {field}"}), 400
 
     # Delete from database
-    success = delete_flashcard(data["word"], data["front"], data["back"])
+    success = delete_flashcard(data["query"], data["front"], data["back"])
 
     if success:
         return jsonify({"message": "Flashcard deleted successfully"}), 200
@@ -74,8 +74,8 @@ def export_flashcards():
         flashcards.append(card)
 
         # Create a Flashcard object and save to database
-        if "word" in card:
-            word = card["word"]
+        if "query" in card:
+            query = card["query"]
             front = card["front"]
             back = card["back"]
 
@@ -83,7 +83,7 @@ def export_flashcards():
             export_time = card.get("exportedAt", datetime.now().isoformat())
 
             flashcard = Flashcard(
-                front=front, back=back, word=word, exportedAt=export_time
+                front=front, back=back, query=query, exportedAt=export_time
             )
 
             # Add to database and collect results
@@ -96,7 +96,7 @@ def export_flashcards():
         # In a real app, this would generate an Anki package
         anki_data = {
             "notes": [
-                {"front": card["front"], "back": card["back"], "tags": [card["word"]]}
+                {"front": card["front"], "back": card["back"], "tags": [card["query"]]}
                 for card in flashcards
             ],
             "saved_flashcards": saved_flashcards,
@@ -106,9 +106,9 @@ def export_flashcards():
     elif format_type == "csv":
         # Create CSV format (just the data structure, not the actual file)
         csv_data = {
-            "headers": ["front", "back", "word"],
+            "headers": ["front", "back", "query"],
             "rows": [
-                [card["front"], card["back"], card["word"]] for card in flashcards
+                [card["front"], card["back"], card["query"]] for card in flashcards
             ],
             "saved_flashcards": saved_flashcards,
         }

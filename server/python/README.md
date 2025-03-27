@@ -1,12 +1,12 @@
 # Redefine Python Backend
 
-This is the Python backend for the Redefine app, a dictionary application that uses LLMs to generate detailed word definitions and learning aids.
+This is the Python backend for the Redefine app, an application that uses LLMs to generate detailed explanations and learning aids for various queries.
 
 ## Features
 
-- Dictionary word lookup API
-- Autosuggest for words as users type
-- LLM integration using LiteLLM for generating definitions for unknown words
+- Query lookup API
+- Autosuggest for queries as users type
+- LLM integration using LiteLLM for generating explanations for unknown queries
 - Flashcard management API
 - Support for multiple LLM providers (OpenAI, Anthropic, etc.)
 
@@ -49,10 +49,10 @@ gunicorn app:app
 
 ## API Endpoints
 
-### Dictionary API
+### Explanation API
 
-- `GET /api/dictionary/search?q=<word>` - Search for a word definition
-- `GET /api/dictionary/autosuggest?q=<prefix>` - Get suggestions for a word prefix
+- `GET /api/explain/search?q=<query>` - Search for an explanation
+- `GET /api/explain/autosuggest?q=<prefix>` - Get suggestions for a query prefix
 
 ### Flashcard API
 

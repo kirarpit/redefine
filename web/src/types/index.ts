@@ -1,9 +1,9 @@
-export type DictionaryEntry = {
-  word: string;
-  phonetic: string;
-  partOfSpeech: string;
-  definition: string;
-  example?: string;
+export type ExplanationEntry = {
+  query: string;
+  pronunciation: string;
+  type: string;
+  explanation: string;
+  quotes?: string[];
   synonyms?: string[];
   flashcards?: { front: string; back: string }[];
 };
@@ -11,12 +11,12 @@ export type DictionaryEntry = {
 export type Flashcard = {
   front: string;
   back: string;
-  word: string;
+  query: string;
   exportedAt: string;
 };
 
 export type SearchHistoryItem = {
-  word: string;
+  query: string;
   timestamp: string;
 };
 

@@ -7,20 +7,20 @@ class FlashcardItem(BaseModel):
     back: str
 
 
-class DictionaryEntry(BaseModel):
-    word: str
-    phonetic: str
-    partOfSpeech: str
-    definition: str
-    example: Optional[str] = None
-    synonyms: Optional[List[str]] = None
+class ExplanationEntry(BaseModel):
+    query: str
+    type: str
+    explanation: str
+    pronunciation: str
+    related_items: Optional[List[str]] = None
+    quotes: Optional[List[str]] = None
     flashcards: Optional[List[FlashcardItem]] = None
 
 
 class Flashcard(BaseModel):
     front: str
     back: str
-    word: str
+    query: str
     exportedAt: str
 
 
@@ -40,7 +40,7 @@ class AutosuggestResponse(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    entry: DictionaryEntry
+    entry: ExplanationEntry
 
 
 class ErrorResponse(BaseModel):

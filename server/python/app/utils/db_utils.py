@@ -140,7 +140,7 @@ class DatabaseManager:
 
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
-                    'SELECT word, front, back, exported_at AS "exportedAt" FROM flashcards'
+                    'SELECT query, front, back, exported_at AS "exportedAt" FROM flashcards'
                 )
                 return cursor.fetchall()
 
@@ -152,9 +152,9 @@ class DatabaseManager:
 
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
-                    'INSERT INTO flashcards (word, front, back, exported_at) VALUES (%s, %s, %s, %s) RETURNING word, front, back, exported_at AS "exportedAt"',
+                    'INSERT INTO flashcards (query, front, back, exported_at) VALUES (%s, %s, %s, %s) RETURNING query, front, back, exported_at AS "exportedAt"',
                     (
-                        flashcard.word,
+                        flashcard.query,
                         flashcard.front,
                         flashcard.back,
                         flashcard.exportedAt,
@@ -163,16 +163,16 @@ class DatabaseManager:
                 conn.commit()
                 return cursor.fetchone()
 
-    def delete_flashcard(self, word: str, front: str, back: str) -> bool:
-        """Delete a flashcard by matching word, front and back."""
+    def delete_flashcard(self, query: str, front: str, back: str) -> bool:
+        """Delete a flashcard by matching query, front and back."""
         with self.get_db_connection() as conn:
             if not conn:
                 return False
 
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "DELETE FROM flashcards WHERE word = %s AND front = %s AND back = %s",
-                    (word, front, back),
+                    "DELETE FROM flashcards WHERE query = %s AND front = %s AND back = %s",
+                    (query, front, back),
                 )
                 conn.commit()
                 return cursor.rowcount > 0
@@ -289,8 +289,8 @@ def add_flashcard(flashcard: Flashcard) -> Dict[str, Any]:
     return db.add_flashcard(flashcard)
 
 
-def delete_flashcard(word: str, front: str, back: str) -> bool:
-    return db.delete_flashcard(word, front, back)
+def delete_flashcard(query: str, front: str, back: str) -> bool:
+    return db.delete_flashcard(query, front, back)
 
 
 def get_llm_models() -> List[Dict[str, Any]]:

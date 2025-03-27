@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 import litellm
 from app.models.schemas import LLMModel
 from app.utils import db_utils
+import logging
 
 
 def set_api_key(model: LLMModel) -> None:
@@ -54,8 +55,8 @@ def get_model_by_id(model_id: str) -> Optional[LLMModel]:
     return None
 
 
-def generate_definition(query: str, model_id: str) -> Dict[str, Any]:
-    """Generate a definition for a given query using the selected model."""
+def generate_explanation(query: str, model_id: str) -> Dict[str, Any]:
+    """Generate an explanation for a given query using the selected model."""
     model = get_model_by_id(model_id)
     if not model:
         raise Exception(f"Model with ID {model_id} not found")
@@ -86,28 +87,29 @@ def generate_definition(query: str, model_id: str) -> Dict[str, Any]:
             "pronunciation",
             "related_items",
             "quotes",
-            "anki_flashcards",
+            "flashcards",
         ]
         for field in required_fields:
             if field not in result:
-                if field in ["related_items", "quotes", "anki_flashcards"]:
+                if field in ["related_items", "quotes", "flashcards"]:
                     result[field] = []
                 else:
                     result[field] = None
         return result
     except Exception as e:
+        logging.error(f"LLM call error: {str(e)}")
         return {
             "query": query,
             "type": "",
-            "explanation": f"Error generating definition: {str(e)}",
+            "explanation": f"Error generating explanation: {str(e)}",
             "pronunciation": None,
             "related_items": [],
             "quotes": [],
-            "anki_flashcards": [],
+            "flashcards": [],
             "error": str(e),
         }
 
 
 # if __name__ == "__main__":
 #     model = get_model_by_id("gemini/gemini-2.0-flash")
-#     print(generate_definition("what is communism", model.id))
+#     print(generate_explanation("what is masochims", model.id))

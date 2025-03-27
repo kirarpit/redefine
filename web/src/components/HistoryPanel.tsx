@@ -6,7 +6,7 @@ type HistoryPanelProps = {
   setSearchHistory: React.Dispatch<React.SetStateAction<SearchHistoryItem[]>>;
   exportedFlashcards: Flashcard[];
   setExportedFlashcards: React.Dispatch<React.SetStateAction<Flashcard[]>>;
-  onNavigateToSearch: (word: string) => void;
+  onNavigateToSearch: (query: string) => void;
 };
 
 const HistoryPanel: React.FC<HistoryPanelProps> = ({
@@ -43,7 +43,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
         body: JSON.stringify({
           front: flashcardToRemove.front,
           back: flashcardToRemove.back,
-          word: flashcardToRemove.word,
+          query: flashcardToRemove.query,
         }),
       });
 
@@ -141,7 +141,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 <div key={index} className="py-3 flex items-center">
                   <div className="flex-1">
                     <div className="font-medium text-gray-800 dark:text-gray-200">
-                      {item.word}
+                      {item.query}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {formatDate(item.timestamp)}
@@ -150,8 +150,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   <button
                     className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
                     onClick={() => {
-                      // Navigate to search tab and search for this word
-                      onNavigateToSearch(item.word);
+                      // Navigate to search tab and search for this query
+                      onNavigateToSearch(item.query);
                     }}
                   >
                     <svg
@@ -213,7 +213,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                     <div className="flex-1">
                       <div className="flex items-center mb-2">
                         <div className="text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded px-2 py-0.5 mr-2">
-                          {card.word}
+                          {card.query}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           Exported {formatDate(card.exportedAt)}

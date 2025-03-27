@@ -22,8 +22,8 @@ def create_app():
                 "status": "ok",
                 "message": "Redefine API server is running",
                 "endpoints": [
-                    "/api/dictionary/search",
-                    "/api/dictionary/autosuggest",
+                    "/api/explain/search",
+                    "/api/explain/autosuggest",
                     "/api/flashcards",
                     "/api/llm/models",
                     "/api/settings/prompt-template",
@@ -32,12 +32,12 @@ def create_app():
         )
 
     # Register blueprints
-    from app.routes.dictionary import dictionary_bp
+    from app.routes.explanation import explanation_bp
     from app.routes.llm import llm_bp
     from app.routes.flashcards import flashcards_bp
     from app.routes.settings import settings_bp
 
-    app.register_blueprint(dictionary_bp, url_prefix="/api/dictionary")
+    app.register_blueprint(explanation_bp, url_prefix="/api/explain")
     app.register_blueprint(llm_bp, url_prefix="/api/llm")
     app.register_blueprint(flashcards_bp, url_prefix="/api/flashcards")
     app.register_blueprint(settings_bp, url_prefix="/api/settings")

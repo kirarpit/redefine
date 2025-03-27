@@ -1,7 +1,7 @@
 -- Table for storing flashcards
 CREATE TABLE IF NOT EXISTS flashcards (
     id SERIAL PRIMARY KEY,
-    word TEXT NOT NULL,
+    query TEXT NOT NULL,
     front TEXT NOT NULL,
     back TEXT NOT NULL,
     exported_at TEXT NOT NULL

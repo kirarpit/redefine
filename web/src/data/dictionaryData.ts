@@ -1,14 +1,15 @@
-import { DictionaryEntry } from "../types";
+import { ExplanationEntry } from "../types";
 
-export const dictionary: Record<string, DictionaryEntry> = {
+export const dictionary: Record<string, ExplanationEntry> = {
   aplomb: {
-    word: "aplomb",
-    phonetic: "/əˈplɒm/",
-    partOfSpeech: "noun",
-    definition:
+    query: "aplomb",
+    pronunciation: "/əˈplɒm/",
+    type: "noun",
+    explanation:
       "Aplomb is the confident, graceful poise you show in challenging situations. It's like a chef who doesn't panic when something catches fire in the kitchen, a public speaker who remains collected when the microphone stops working, or a dancer who recovers seamlessly from a minor stumble. Having aplomb means you handle pressure with ease and self-assurance.",
-    example:
-      "She handled the difficult interview questions with aplomb, impressing all the panel members.",
+    quotes: [
+      "She handled the difficult interview questions with aplomb, impressing all the panel members."
+    ],
     synonyms: ["poise", "confidence", "self-assurance", "composure", "grace"],
     flashcards: [
       {
@@ -28,13 +29,14 @@ export const dictionary: Record<string, DictionaryEntry> = {
     ],
   },
   apple: {
-    word: "apple",
-    phonetic: "/ˈæp.əl/",
-    partOfSpeech: "noun",
-    definition:
+    query: "apple",
+    pronunciation: "/ˈæp.əl/",
+    type: "noun",
+    explanation:
       "An apple is a common round fruit with a red, green, or yellow skin and crisp, juicy flesh. Beyond being a healthy snack, apples are deeply embedded in our culture - from the 'apple of my eye' idiom describing someone precious to you, to the iconic Apple technology company, to the legendary story of Newton discovering gravity when an apple fell on his head. Apples symbolize knowledge, temptation, and simplicity.",
-    example:
-      "She packed an apple in her lunch every day for its convenience and nutritional benefits.",
+    quotes: [
+      "She packed an apple in her lunch every day for its convenience and nutritional benefits."
+    ],
     synonyms: ["fruit", "produce", "orchard fruit", "pomaceous fruit"],
     flashcards: [
       {
@@ -53,13 +55,14 @@ export const dictionary: Record<string, DictionaryEntry> = {
     ],
   },
   apache: {
-    word: "apache",
-    phonetic: "/əˈpæʃ/",
-    partOfSpeech: "noun",
-    definition:
+    query: "apache",
+    pronunciation: "/əˈpæʃ/",
+    type: "noun",
+    explanation:
       "Apache refers to a group of culturally related Native American tribes originally from the Southwestern United States. The name is also used for their languages and has been adopted for various modern contexts - most notably the Apache web server software that powers a large portion of websites, and the Apache helicopter, a formidable attack aircraft. The Apache people are known for their resilience, adaptability, and rich cultural traditions.",
-    example:
-      "The Apache tribes developed sophisticated survival techniques adapted to the harsh desert environment.",
+    quotes: [
+      "The Apache tribes developed sophisticated survival techniques adapted to the harsh desert environment."
+    ],
     synonyms: ["tribe", "people", "nation", "indigenous group"],
     flashcards: [
       {
@@ -79,13 +82,14 @@ export const dictionary: Record<string, DictionaryEntry> = {
     ],
   },
   apprentice: {
-    word: "apprentice",
-    phonetic: "/əˈprentɪs/",
-    partOfSpeech: "noun",
-    definition:
+    query: "apprentice",
+    pronunciation: "/əˈprentɪs/",
+    type: "noun",
+    explanation:
       "An apprentice is someone who's learning a craft, trade, or profession from an experienced mentor. Unlike modern students who primarily learn through books and lectures, apprentices learn by doing - working alongside masters of their field. This hands-on approach appears in many contexts: a young chef learning under a renowned restaurateur, a carpenter's assistant developing woodworking skills, or even in corporate 'apprenticeship programs' where new employees receive mentorship and training.",
-    example:
-      "As an apprentice to the master carpenter, she learned techniques that couldn't be taught in any classroom.",
+    quotes: [
+      "As an apprentice to the master carpenter, she learned techniques that couldn't be taught in any classroom."
+    ],
     synonyms: ["trainee", "learner", "student", "novice", "mentee"],
     flashcards: [
       {
@@ -104,13 +108,14 @@ export const dictionary: Record<string, DictionaryEntry> = {
     ],
   },
   appropriate: {
-    word: "appropriate",
-    phonetic: "/əˈproʊpriət/",
-    partOfSpeech: "adjective",
-    definition:
+    query: "appropriate",
+    pronunciation: "/əˈproʊpriət/",
+    type: "adjective",
+    explanation:
       "Something appropriate fits well with a particular situation or context. It's about what's suitable, proper, or fitting for specific circumstances. Appropriate attire for a beach differs from appropriate behavior in a library. The concept shifts across cultures, generations, and settings - what's appropriate in casual settings may be inappropriate in formal ones. Having a good sense of what's appropriate shows social awareness and respect for different contexts.",
-    example:
-      "Wearing formal business attire would be entirely appropriate for the interview, but might be inappropriate for the company's casual Friday policy.",
+    quotes: [
+      "Wearing formal business attire would be entirely appropriate for the interview, but might be inappropriate for the company's casual Friday policy."
+    ],
     synonyms: ["suitable", "proper", "fitting", "apt", "relevant", "correct"],
     flashcards: [
       {

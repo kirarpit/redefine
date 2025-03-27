@@ -27,7 +27,7 @@ prompt:
       - <string>
     quotes:
       - <string>
-    anki_flashcards:
+    flashcards:
       - type: one of [cloze, basic, reversed]
         front: <string>
         back: <string>

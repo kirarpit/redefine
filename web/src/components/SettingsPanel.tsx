@@ -183,9 +183,6 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
             {"{query}"}
           </code>{" "}
           as a placeholder for the search term.
-          <span className="ml-2 italic">
-            Press Cmd+Enter (or Ctrl+Enter) to save.
-          </span>
         </p>
       </div>
     </div>
@@ -193,31 +190,30 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
 };
 
 type TestPromptSectionProps = {
-  testWord: string;
-  onTestWordChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  testQuery: string;
+  onTestQueryChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onTest: () => void;
   isGenerating: boolean;
-  generatedDefinition: string;
+  generatedExplanation: string;
   selectedModel: string;
   modelName: string;
 };
 
 const TestPromptSection: FC<TestPromptSectionProps> = ({
-  testWord,
-  onTestWordChange,
+  testQuery,
+  onTestQueryChange,
   onTest,
   isGenerating,
-  generatedDefinition,
+  generatedExplanation,
   selectedModel,
   modelName,
 }) => {
-  // Handle Enter key press for test input
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (
       e.key === "Enter" &&
       !isGenerating &&
       selectedModel &&
-      testWord.trim()
+      testQuery.trim()
     ) {
       e.preventDefault();
       onTest();
@@ -240,24 +236,24 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
       <div className="flex gap-2 mb-4">
         <input
           type="text"
-          value={testWord}
-          onChange={onTestWordChange}
+          value={testQuery}
+          onChange={onTestQueryChange}
           onKeyDown={handleKeyDown}
           placeholder="Enter a query to test"
           className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
         />
         <Button
           onClick={onTest}
-          disabled={isGenerating || !selectedModel || !testWord.trim()}
+          disabled={isGenerating || !selectedModel || !testQuery.trim()}
         >
           {isGenerating ? "Generating..." : "Test"}
         </Button>
       </div>
 
-      {generatedDefinition && (
+      {generatedExplanation && (
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3 max-h-60 overflow-y-auto">
           <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm">
-            {generatedDefinition}
+            {generatedExplanation}
             {isGenerating && <span className="animate-pulse">|</span>}
           </div>
         </div>
@@ -286,9 +282,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     return saved || "";
   });
 
-  const [testWord, setTestWord] = useState("");
+  const [testQuery, setTestQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedDefinition, setGeneratedDefinition] = useState("");
+  const [generatedExplanation, setGeneratedExplanation] = useState("");
   const [isAddingModel, setIsAddingModel] = useState(false);
 
   // Fetch models and prompt template from the backend API
@@ -483,7 +479,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   };
 
   const handleTestPrompt = async () => {
-    if (!testWord.trim()) {
+    if (!testQuery.trim()) {
       alert("Please enter a query to test");
       return;
     }
@@ -494,21 +490,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     }
 
     setIsGenerating(true);
-    setGeneratedDefinition("");
+    setGeneratedExplanation("");
 
-    const finalPrompt = promptTemplate.replace("{query}", testWord);
+    const finalPrompt = promptTemplate.replace("{query}", testQuery);
 
     try {
       const response = await testModel(selectedModel, finalPrompt);
-      setGeneratedDefinition(response);
+      setGeneratedExplanation(response);
       setIsGenerating(false);
     } catch (error) {
       setIsGenerating(false);
-      setGeneratedDefinition(
+      setGeneratedExplanation(
         `Error: ${
           error instanceof Error
             ? error.message
-            : "Failed to generate definition"
+            : "Failed to generate explanation"
         }`
       );
       console.error("Error testing prompt:", error);
@@ -548,7 +544,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
         description={
           models.length === 0
             ? "To get started with Redefine, add at least one AI model with your API key."
-            : "Manage your AI models and API connections. Click on a model to select it as active."
+            : ""
         }
       >
         {!isAddingModel ? (
@@ -579,7 +575,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       {models.length > 0 && (
         <Section
           title="Definition Generation Settings"
-          description="Customize how definitions are generated by editing the prompt template."
+          description="Customize how explanations are generated by editing the prompt template."
         >
           <PromptTemplateEditor
             promptTemplate={promptTemplate}
@@ -593,11 +589,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
           />
 
           <TestPromptSection
-            testWord={testWord}
-            onTestWordChange={(e) => setTestWord(e.target.value)}
+            testQuery={testQuery}
+            onTestQueryChange={(e) => setTestQuery(e.target.value)}
             onTest={handleTestPrompt}
             isGenerating={isGenerating}
-            generatedDefinition={generatedDefinition}
+            generatedExplanation={generatedExplanation}
             selectedModel={selectedModel}
             modelName={
               models.find((m) => m.id === selectedModel)?.name || selectedModel

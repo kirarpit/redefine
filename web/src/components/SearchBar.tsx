@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef, ChangeEvent } from "react";
-import { DictionaryEntry, Flashcard, SearchHistoryItem } from "../types";
+import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
 import { dictionary } from "../data/dictionaryData";
 import { useFlashcardManager, FlashcardList } from "./Flashcard";
 
 type SearchBarProps = {
   query: string;
   setQuery: React.Dispatch<React.SetStateAction<string>>;
-  wordData: DictionaryEntry | { word: string; error: boolean } | null;
+  wordData: ExplanationEntry | { query: string; error: boolean } | null;
   setWordData: React.Dispatch<
     React.SetStateAction<
-      DictionaryEntry | { word: string; error: boolean } | null
+      ExplanationEntry | { query: string; error: boolean } | null
     >
   >;
   isStreaming: boolean;
@@ -143,25 +143,27 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
     if (data) {
       setWordData(data);
-      streamDefinition(data.definition);
+      streamExplanation(data.explanation);
 
       setSearchHistory((prev) => {
-        const filteredHistory = prev.filter((item) => item.word !== data.word);
+        const filteredHistory = prev.filter(
+          (item) => item.query !== data.query
+        );
         return [
-          { word: data.word, timestamp: new Date().toISOString() },
+          { query: data.query, timestamp: new Date().toISOString() },
           ...filteredHistory,
         ].slice(0, 100);
       });
     } else {
       setWordData({
-        word: searchQuery,
+        query: searchQuery,
         error: true,
       });
       setStreamedText("");
     }
   };
 
-  const streamDefinition = (text: string): void => {
+  const streamExplanation = (text: string): void => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -296,7 +298,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             </svg>
             <span>
               Please configure a language model in Settings before searching.
-              This is required for generating definitions.
+              This is required for generating explanations.
             </span>
           </div>
           <div className="flex items-center">
@@ -331,7 +333,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 dark:focus-within:ring-blue-400">
           <input
             type="text"
-            placeholder="Search for a word..."
+            placeholder="Search for anything..."
             value={query}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
@@ -386,21 +388,21 @@ const SearchBar: React.FC<SearchBarProps> = ({
         >
           {"error" in wordData ? (
             <div className="text-gray-500 dark:text-gray-400 text-center py-4">
-              We couldn't find "{wordData.word}" in our dictionary. Please try
-              another word.
+              We couldn't find any information about "{wordData.query}". Please
+              try another query.
             </div>
           ) : (
             <>
               <div className="flex items-center mb-2">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  {wordData.word}
+                  {wordData.query}
                 </h2>
                 <span className="ml-3 text-gray-500 dark:text-gray-400 text-sm font-normal italic">
-                  {wordData.phonetic}
+                  {wordData.pronunciation}
                 </span>
                 <button
                   className="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Pronounce word"
+                  title="Pronounce query"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -420,7 +422,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               </div>
 
               <div className="text-sm text-blue-500 dark:text-blue-400 font-semibold uppercase tracking-wide mb-3">
-                {wordData.partOfSpeech}
+                {wordData.type}
               </div>
 
               <div className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6 min-h-24">
@@ -428,9 +430,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 {isStreaming && <span className="animate-pulse">|</span>}
               </div>
 
-              {wordData.example && (
+              {wordData.quotes && wordData.quotes.length > 0 && (
                 <div className="text-gray-600 dark:text-gray-400 italic mb-6 pl-4 border-l-2 border-gray-200 dark:border-gray-600">
-                  {wordData.example}
+                  {wordData.quotes.map((quote, index) => (
+                    <p key={index}>{quote}</p>
+                  ))}
                 </div>
               )}
 

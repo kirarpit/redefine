@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import SearchBar from "./SearchBar";
 import HistoryPanel from "./HistoryPanel";
 import SettingsPanel from "./SettingsPanel";
-import { DictionaryEntry, Flashcard, SearchHistoryItem } from "../types";
+import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
 import { dictionary } from "../data/dictionaryData";
 
 type TabType = "search" | "history" | "settings";
@@ -85,7 +85,7 @@ const Redefine: React.FC = () => {
   // Lifted search state from SearchBar
   const [query, setQuery] = useState<string>("");
   const [wordData, setWordData] = useState<
-    DictionaryEntry | { word: string; error: boolean } | null
+    ExplanationEntry | { query: string; error: boolean } | null
   >(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [streamedText, setStreamedText] = useState<string>("");
@@ -141,13 +141,13 @@ const Redefine: React.FC = () => {
     if (data) {
       setWordData(data);
       // Simulate the streaming effect
-      if (data.definition) {
+      if (data.explanation) {
         setIsStreaming(true);
         setStreamedText("");
         let index = 0;
         const streamInterval = setInterval(() => {
-          if (index < data.definition.length) {
-            const currentChar = data.definition.charAt(index);
+          if (index < data.explanation.length) {
+            const currentChar = data.explanation.charAt(index);
             setStreamedText((prev) => prev + currentChar);
             index++;
           } else {
@@ -158,15 +158,17 @@ const Redefine: React.FC = () => {
       }
 
       setSearchHistory((prev) => {
-        const filteredHistory = prev.filter((item) => item.word !== data.word);
+        const filteredHistory = prev.filter(
+          (item) => item.query !== data.query
+        );
         return [
-          { word: data.word, timestamp: new Date().toISOString() },
+          { query: data.query, timestamp: new Date().toISOString() },
           ...filteredHistory,
         ].slice(0, 100);
       });
     } else {
       setWordData({
-        word,
+        query: word,
         error: true,
       });
       setStreamedText("");
@@ -187,7 +189,7 @@ const Redefine: React.FC = () => {
                 redefine
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Learn words in an elegant way.
+                Understand anything in an elegant way.
               </p>
             </div>
             <button
@@ -205,7 +207,7 @@ const Redefine: React.FC = () => {
             <nav className="flex border-b border-gray-200 dark:border-gray-700">
               <NavTab
                 id="search"
-                label="Dictionary"
+                label="Explain"
                 activeTab={activeTab}
                 onClick={setActiveTab}
               />
