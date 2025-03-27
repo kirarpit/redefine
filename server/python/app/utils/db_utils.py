@@ -257,7 +257,6 @@ class DatabaseManager:
                 return False
 
             with conn.cursor() as cursor:
-                # Check if the prompt template setting already exists
                 cursor.execute(
                     "SELECT key FROM app_settings WHERE key = 'prompt_template'"
                 )

@@ -418,17 +418,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 
     try {
       const response = await testModel(selectedModel, finalPrompt);
-
-      let index = 0;
-      const interval = setInterval(() => {
-        if (index < response.length) {
-          setGeneratedDefinition((prev) => prev + response.charAt(index));
-          index++;
-        } else {
-          clearInterval(interval);
-          setIsGenerating(false);
-        }
-      }, 10);
+      setGeneratedDefinition(response);
+      setIsGenerating(false);
     } catch (error) {
       setIsGenerating(false);
       setGeneratedDefinition(
@@ -554,10 +545,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             <span className="font-medium text-gray-700 dark:text-gray-300">
               Redefine
             </span>{" "}
-            - Version 1.2.0
+            - Version 0.1.0
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-            Created with ❤️ for elegant word learning
+            Created with ❤️ for smart word learning
           </p>
         </div>
       </Section>

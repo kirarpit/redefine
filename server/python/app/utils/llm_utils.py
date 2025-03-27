@@ -1,25 +1,18 @@
 import os
 import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 import litellm
-from litellm import completion
 from app.models.schemas import LLMModel
-from app.utils.db_utils import get_llm_models
 
 
 def set_api_key(model: LLMModel) -> None:
     """Set the API key for a specific model provider."""
-    if "gpt" in model.id.lower():
-        os.environ["OPENAI_API_KEY"] = model.apiKey
-        if model.apiEndpoint:
-            os.environ["OPENAI_API_BASE"] = model.apiEndpoint
-    elif "claude" in model.id.lower():
-        os.environ["ANTHROPIC_API_KEY"] = model.apiKey
-        if model.apiEndpoint:
-            os.environ["ANTHROPIC_API_BASE"] = model.apiEndpoint
-    else:
-        # For other custom models, set through litellm
-        litellm.set_api_key(model.apiKey, model.id)
+    provider = model.id.split("/")[0].lower() if "/" in model.id else model.id.lower()
+    env_var_name = f"{provider.upper()}_API_KEY"
+    os.environ[env_var_name] = model.apiKey
+    if model.apiEndpoint:
+        env_var_base = f"{provider.upper()}_API_BASE"
+        os.environ[env_var_base] = model.apiEndpoint
 
 
 def test_prompt(model_info: Dict[str, Any], prompt: str) -> str:
@@ -44,7 +37,7 @@ def test_prompt(model_info: Dict[str, Any], prompt: str) -> str:
     set_api_key(model)
 
     try:
-        response = completion(
+        response = litellm.completion(
             model=model.id,
             messages=[
                 {"role": "user", "content": prompt},
@@ -102,7 +95,7 @@ def generate_definition(
 
     # Make the LLM call with error handling
     try:
-        response = completion(
+        response = litellm.completion(
             model=model_id,
             messages=[
                 {"role": "system", "content": system_prompt},

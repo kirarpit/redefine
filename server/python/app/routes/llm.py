@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.models.schemas import LLMModel
 from app.utils.db_utils import get_llm_models, add_llm_model, delete_llm_model
-from app.utils.sanitize_utils import sanitize_input
 from app.utils.llm_utils import test_prompt
 import urllib.parse
 
@@ -30,17 +29,11 @@ def create_model():
         if not data[field] or not isinstance(data[field], str):
             return jsonify({"error": f"Invalid value for field: {field}"}), 400
 
-    # Sanitize input strings
-    name = sanitize_input(data["name"])
-    api_key = sanitize_input(data["apiKey"])
-    api_endpoint = sanitize_input(data.get("apiEndpoint", ""))
-    model_id = sanitize_input(data["modelId"])
-
     model = LLMModel(
-        id=model_id,
-        name=name,
-        apiKey=api_key,
-        apiEndpoint=api_endpoint if api_endpoint else None,
+        id=data["modelId"],
+        name=data["name"],
+        apiKey=data["apiKey"],
+        apiEndpoint=data.get("apiEndpoint", None),
     )
     add_llm_model(model)
     return jsonify({"message": "Model added successfully"}), 201
@@ -52,8 +45,7 @@ def remove_model(model_id):
         return jsonify({"error": "Model ID is required"}), 400
 
     decoded_model_id = urllib.parse.unquote(model_id)
-
-    success = delete_llm_model(sanitize_input(decoded_model_id))
+    success = delete_llm_model(decoded_model_id)
 
     if success:
         return jsonify({"message": "Model deleted successfully"}), 200
@@ -66,7 +58,6 @@ def test_model():
     """Test an LLM model with a prompt."""
     data = request.json
 
-    # Validate required fields
     if not data or not isinstance(data, dict):
         return jsonify({"error": "Invalid request body"}), 400
 
@@ -77,19 +68,15 @@ def test_model():
         if not data[field] or not isinstance(data[field], str):
             return jsonify({"error": f"Invalid value for field: {field}"}), 400
 
-    # Sanitize input strings
-    model_id = sanitize_input(data["modelId"])
-    prompt = sanitize_input(data["prompt"])
+    prompt = data["prompt"]
 
     try:
-        # Get the model configuration
         models = get_llm_models()
-        model = next((m for m in models if m["id"] == model_id), None)
+        model = next((m for m in models if m["id"] == data["modelId"]), None)
 
         if not model:
             return jsonify({"error": "Model not found"}), 404
 
-        # Generate response using the test_prompt function from llm_utils
         response = test_prompt(model, prompt)
 
         return jsonify({"response": response}), 200

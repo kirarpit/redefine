@@ -421,10 +421,10 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
           </button>
         </div>
       </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+      {/* <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Select cards to export for your study sessions, or edit them to better
         fit your needs:
-      </p>
+      </p> */}
 
       <div className="grid gap-3">
         {wordData.flashcards.map((flashcard, index) => (

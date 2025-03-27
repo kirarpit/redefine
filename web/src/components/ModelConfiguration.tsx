@@ -273,24 +273,6 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
       <div className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Model Name
-          </label>
-          <input
-            type="text"
-            value={newModelName}
-            onChange={(e) => setNewModelName(e.target.value)}
-            placeholder="e.g., Claude 3 Opus (optional)"
-            autoComplete="off"
-            data-form-type="other"
-            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            If left empty, the model name will be extracted from the Model ID.
-          </p>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             Model ID*
           </label>
           <input
@@ -329,6 +311,24 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
             autoComplete="off"
             className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Model Name (Optional)
+          </label>
+          <input
+            type="text"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            placeholder="e.g., Claude 3 Opus"
+            autoComplete="off"
+            data-form-type="other"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            If left empty, the model name will be extracted from the Model ID.
+          </p>
         </div>
 
         <div>

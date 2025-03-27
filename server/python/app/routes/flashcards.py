@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.models.schemas import Flashcard
 from app.utils.db_utils import get_flashcards, add_flashcard, delete_flashcard
-from app.utils.sanitize_utils import sanitize_input, sanitize_dict
 from datetime import datetime
 
 flashcards_bp = Blueprint("flashcards", __name__)
@@ -24,14 +23,11 @@ def create_flashcard():
         if field not in data:
             return jsonify({"error": f"Missing required field: {field}"}), 400
 
-    # Sanitize input data
-    sanitized_data = sanitize_dict(data)
-
     # Create flashcard with current timestamp
     flashcard = Flashcard(
-        front=sanitized_data["front"],
-        back=sanitized_data["back"],
-        word=sanitized_data["word"],
+        front=data["front"],
+        back=data["back"],
+        word=data["word"],
         exportedAt=datetime.now().isoformat(),
     )
 
@@ -52,13 +48,8 @@ def remove_flashcard():
         if field not in data:
             return jsonify({"error": f"Missing required field: {field}"}), 400
 
-    # Sanitize input data
-    sanitized_data = sanitize_dict(data)
-
     # Delete from database
-    success = delete_flashcard(
-        sanitized_data["word"], sanitized_data["front"], sanitized_data["back"]
-    )
+    success = delete_flashcard(data["word"], data["front"], data["back"])
 
     if success:
         return jsonify({"message": "Flashcard deleted successfully"}), 200
@@ -74,23 +65,22 @@ def export_flashcards():
     if "flashcards" not in data or not isinstance(data["flashcards"], list):
         return jsonify({"error": "Invalid flashcards data"}), 400
 
-    format_type = sanitize_input(data.get("format", "anki"))
+    format_type = data.get("format", "anki")
 
     # Sanitize the flashcards data
-    sanitized_flashcards = []
+    flashcards = []
     saved_flashcards = []
     for card in data["flashcards"]:
-        sanitized_card = sanitize_dict(card)
-        sanitized_flashcards.append(sanitized_card)
+        flashcards.append(card)
 
         # Create a Flashcard object and save to database
-        if "word" in sanitized_card:
-            word = sanitized_card["word"]
-            front = sanitized_card["front"]
-            back = sanitized_card["back"]
+        if "word" in card:
+            word = card["word"]
+            front = card["front"]
+            back = card["back"]
 
             # Create flashcard with current timestamp if exportedAt is not provided
-            export_time = sanitized_card.get("exportedAt", datetime.now().isoformat())
+            export_time = card.get("exportedAt", datetime.now().isoformat())
 
             flashcard = Flashcard(
                 front=front, back=back, word=word, exportedAt=export_time
@@ -107,7 +97,7 @@ def export_flashcards():
         anki_data = {
             "notes": [
                 {"front": card["front"], "back": card["back"], "tags": [card["word"]]}
-                for card in sanitized_flashcards
+                for card in flashcards
             ],
             "saved_flashcards": saved_flashcards,
         }
@@ -118,8 +108,7 @@ def export_flashcards():
         csv_data = {
             "headers": ["front", "back", "word"],
             "rows": [
-                [card["front"], card["back"], card["word"]]
-                for card in sanitized_flashcards
+                [card["front"], card["back"], card["word"]] for card in flashcards
             ],
             "saved_flashcards": saved_flashcards,
         }

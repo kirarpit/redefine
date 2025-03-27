@@ -1,8 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.models.schemas import PromptTemplate
 from app.utils.db_utils import get_prompt_template, save_prompt_template
-from app.utils.sanitize_utils import sanitize_input
-import html
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -36,8 +33,6 @@ def get_template():
             template = DEFAULT_PROMPT_TEMPLATE
             save_prompt_template(template)
 
-    template = html.unescape(template)
-
     return jsonify({"template": template}), 200
 
 
@@ -55,11 +50,8 @@ def save_template():
     if not data["template"] or not isinstance(data["template"], str):
         return jsonify({"error": "Invalid value for field: template"}), 400
 
-    # Sanitize the template input
-    template = sanitize_input(data["template"])
-
     # Save the template to the database
-    success = save_prompt_template(template)
+    success = save_prompt_template(data["template"])
 
     if success:
         return jsonify({"message": "Prompt template saved successfully"}), 200

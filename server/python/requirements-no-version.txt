@@ -7,3 +7,4 @@ gunicorn
 pymongo
 pydantic
 cryptography 
+google-generativeai
