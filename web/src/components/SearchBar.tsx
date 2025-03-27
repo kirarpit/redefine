@@ -1,7 +1,40 @@
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
-import { dictionary } from "../data/dictionaryData";
 import { useFlashcardManager, FlashcardList } from "./Flashcard";
+import { dictionary } from "../data/dictionaryData";
+
+const API_BASE_URL = "http://localhost:5000/api";
+
+export const searchExplanation = async (
+  query: string,
+  modelId: string
+): Promise<ExplanationEntry> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/explain/search?q=${query}&modelId=${encodeURIComponent(
+        modelId
+      )}`
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || `HTTP error! Status: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    console.log(data);
+    return data.entry;
+  } catch (error) {
+    console.error("Error searching for explanation:", error);
+    throw error;
+  }
+};
+
+export const getSelectedModelId = (): string | null => {
+  return localStorage.getItem("selectedModel");
+};
 
 type SearchBarProps = {
   query: string;
@@ -49,6 +82,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   } | null>(null);
   const [showModelRequiredMessage, setShowModelRequiredMessage] =
     useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Use the flashcard manager hook
   const flashcardManager = useFlashcardManager(
@@ -119,7 +153,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setSelectedIndex(null);
   };
 
-  const handleSearch = (searchQuery: string): void => {
+  const handleSearch = async (searchQuery: string): Promise<void> => {
     if (!searchQuery) return;
 
     if (!isModelConfigured()) {
@@ -139,9 +173,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setIsStreaming(false);
     setStreamedText("");
 
-    const data = dictionary[searchQuery.toLowerCase()];
+    // Set loading states
+    setIsLoading(true);
+    setWordData(null);
 
-    if (data) {
+    try {
+      const modelId = getSelectedModelId();
+      if (!modelId) {
+        setShowModelRequiredMessage(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await searchExplanation(searchQuery, modelId);
+
       setWordData(data);
       streamExplanation(data.explanation);
 
@@ -154,12 +199,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
           ...filteredHistory,
         ].slice(0, 100);
       });
-    } else {
+    } catch (error) {
+      console.error("Error searching:", error);
       setWordData({
         query: searchQuery,
         error: true,
       });
       setStreamedText("");
+      setNotification({
+        message: "Failed to retrieve explanation. Please try again later.",
+        type: "error",
+        visible: true,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -339,27 +392,52 @@ const SearchBar: React.FC<SearchBarProps> = ({
             onKeyDown={handleKeyPress}
             className="w-full bg-white dark:bg-gray-800 px-4 py-3 text-gray-700 dark:text-gray-200 focus:outline-none"
             autoComplete="off"
+            disabled={isLoading}
           />
           <button
             onClick={() => handleSearch(query)}
             className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 px-4 transition duration-150 flex items-center justify-center"
             aria-label="Search"
             type="button"
+            disabled={isLoading}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="2"
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-              />
-            </svg>
+            {isLoading ? (
+              <svg
+                className="animate-spin h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth="2"
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+            )}
           </button>
         </div>
 
@@ -438,19 +516,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 </div>
               )}
 
-              {wordData.synonyms && wordData.synonyms.length > 0 && (
+              {wordData.related_items && wordData.related_items.length > 0 && (
                 <div className="mb-6">
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                    Synonyms:
+                    Related Items:
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {wordData.synonyms.map((synonym, index) => (
+                    {wordData.related_items.map((item, index) => (
                       <span
                         key={index}
                         className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm px-3 py-1 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
-                        onClick={() => handleSearch(synonym)}
+                        onClick={() => handleSearch(item)}
                       >
-                        {synonym}
+                        {item}
                       </span>
                     ))}
                   </div>
@@ -471,6 +549,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
               />
             </>
           )}
+        </div>
+      )}
+
+      {!wordData && isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
       )}
     </div>

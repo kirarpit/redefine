@@ -1,10 +1,10 @@
 export type ExplanationEntry = {
   query: string;
-  pronunciation: string;
   type: string;
   explanation: string;
+  pronunciation: string;
+  related_items?: string[];
   quotes?: string[];
-  synonyms?: string[];
   flashcards?: { front: string; back: string }[];
 };
 

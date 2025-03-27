@@ -66,7 +66,6 @@ def generate_explanation(query: str, model_id: str) -> Dict[str, Any]:
     if not prompt_template:
         raise Exception("No prompt template found")
     prompt = prompt_template.format(query=query)
-
     try:
         response = litellm.completion(
             model=model.id,
@@ -77,9 +76,10 @@ def generate_explanation(query: str, model_id: str) -> Dict[str, Any]:
         )
 
         content = response.choices[0].message.content
+        print(content)
         content = content.split("```yaml", 1)[1].split("```", 1)[0].strip()
         result = yaml.safe_load(content)
-
+        print(result)
         required_fields = [
             "query",
             "type",

@@ -3,7 +3,7 @@ from app.data.sample_explanations import explanation_data
 from app.utils.llm_utils import generate_explanation
 import logging
 
-explanation_bp = Blueprint("explanation", __name__)
+explanation_bp = Blueprint("explain", __name__)
 
 
 @explanation_bp.route("/search", methods=["GET"])

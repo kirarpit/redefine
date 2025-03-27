@@ -207,7 +207,7 @@ const Redefine: React.FC = () => {
             <nav className="flex border-b border-gray-200 dark:border-gray-700">
               <NavTab
                 id="search"
-                label="Explain"
+                label="Search"
                 activeTab={activeTab}
                 onClick={setActiveTab}
               />

@@ -441,7 +441,7 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
               <div className="p-4">
                 <div className="mb-3">
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Front (Question)
+                    Front
                   </label>
                   <input
                     type="text"
@@ -454,7 +454,7 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
                 </div>
                 <div className="mb-3">
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Back (Answer)
+                    Back
                   </label>
                   <input
                     type="text"
