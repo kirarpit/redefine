@@ -1,18 +1,8 @@
 from flask import Blueprint, request, jsonify
-from app.utils.db_utils import get_prompt_template, save_prompt_template
+from app.utils import db_utils
+from app.utils import settings_utils
 
 settings_bp = Blueprint("settings", __name__)
-
-
-# Default prompt template to use if none exists in the database
-DEFAULT_PROMPT_TEMPLATE = """Provide a comprehensive definition for the word "{word}" that includes:
-1. Its meaning in plain, accessible language
-2. Contextual examples of how it's used
-3. Cultural or historical significance if relevant
-4. Common phrases or idioms it appears in
-5. Connections to related concepts
-
-Keep the tone conversational but informative, as if explaining to a curious friend. Avoid overly academic language but don't oversimplify."""
 
 
 @settings_bp.route("/prompt-template", methods=["GET"])
@@ -24,14 +14,15 @@ def get_template():
         default (bool): If set to 'true', returns the default template regardless of what's in the database.
     """
     use_default = request.args.get("default", "").lower() == "true"
+    default_template = settings_utils.load_prompt_template()
 
     if use_default:
-        template = DEFAULT_PROMPT_TEMPLATE
+        template = default_template
     else:
-        template = get_prompt_template()
+        template = db_utils.get_prompt_template()
         if template is None:
-            template = DEFAULT_PROMPT_TEMPLATE
-            save_prompt_template(template)
+            template = default_template
+            db_utils.save_prompt_template(template)
 
     return jsonify({"template": template}), 200
 
@@ -51,7 +42,7 @@ def save_template():
         return jsonify({"error": "Invalid value for field: template"}), 400
 
     # Save the template to the database
-    success = save_prompt_template(data["template"])
+    success = db_utils.save_prompt_template(data["template"])
 
     if success:
         return jsonify({"message": "Prompt template saved successfully"}), 200

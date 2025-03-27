@@ -1,8 +1,9 @@
 import os
-import json
+import yaml
 from typing import Dict, Any, Optional
 import litellm
 from app.models.schemas import LLMModel
+from app.utils import db_utils
 
 
 def set_api_key(model: LLMModel) -> None:
@@ -15,25 +16,17 @@ def set_api_key(model: LLMModel) -> None:
         os.environ[env_var_base] = model.apiEndpoint
 
 
-def test_prompt(model_info: Dict[str, Any], prompt: str) -> str:
+def test_prompt(model: LLMModel, prompt: str) -> str:
     """
     Test a model with a custom prompt and return the raw text response.
 
     Args:
-        model_info: Dictionary containing model configuration (id, apiKey, etc.)
+        model: The model to use
         prompt: The prompt to send to the model
 
     Returns:
         str: The raw text response from the model
     """
-    # Create LLMModel object from dictionary
-    model = LLMModel(
-        id=model_info["id"],
-        name=model_info["name"],
-        apiKey=model_info["apiKey"],
-        apiEndpoint=model_info.get("apiEndpoint"),
-    )
-
     set_api_key(model)
 
     try:
@@ -52,99 +45,69 @@ def test_prompt(model_info: Dict[str, Any], prompt: str) -> str:
         raise Exception(error_msg)
 
 
-def generate_definition(
-    word: str, model_id: str, api_key: str, api_endpoint: Optional[str] = None
-) -> Dict[str, Any]:
-    """Generate a definition, examples, and other metadata for a word using the selected model."""
+def get_model_by_id(model_id: str) -> Optional[LLMModel]:
+    """Get a model by ID from the database."""
+    models = db_utils.get_llm_models()
+    for model in models:
+        if model["id"] == model_id:
+            return LLMModel(**model)
+    return None
 
-    model = LLMModel(
-        id=model_id,
-        name=model_id,  # Frontend will provide the actual model ID
-        apiKey=api_key,
-        apiEndpoint=api_endpoint,
-    )
+
+def generate_definition(query: str, model_id: str) -> Dict[str, Any]:
+    """Generate a definition for a given query using the selected model."""
+    model = get_model_by_id(model_id)
+    if not model:
+        raise Exception(f"Model with ID {model_id} not found")
     set_api_key(model)
 
-    # Create the prompt
-    system_prompt = """You are a highly knowledgeable dictionary assistant. 
-    Your task is to provide comprehensive information about a word, including:
-    1. The correct phonetic pronunciation
-    2. Part of speech
-    3. A rich, detailed definition that explains both literal meaning and cultural/practical context
-    4. An example sentence showing proper usage
-    5. A list of synonyms
-    6. Three flashcards for learning the word (question and answer pairs)
+    prompt_template = db_utils.get_prompt_template()
+    if not prompt_template:
+        raise Exception("No prompt template found")
+    prompt = prompt_template.format(query=query)
 
-    Format your response as a JSON object with these fields:
-    {
-        "word": "the word",
-        "phonetic": "phonetic pronunciation",
-        "partOfSpeech": "part of speech",
-        "definition": "detailed definition",
-        "example": "example sentence",
-        "synonyms": ["synonym1", "synonym2", ...],
-        "flashcards": [
-            {"front": "question1", "back": "answer1"},
-            {"front": "question2", "back": "answer2"},
-            {"front": "question3", "back": "answer3"}
-        ]
-    }
-    """
-
-    user_prompt = f"Define the word: {word}"
-
-    # Make the LLM call with error handling
     try:
         response = litellm.completion(
-            model=model_id,
+            model=model.id,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "user", "content": prompt},
             ],
-            temperature=0.1,
+            temperature=0.0,
         )
 
-        # Extract and parse response content
         content = response.choices[0].message.content
-        try:
-            # Try to parse JSON from the response
-            result = json.loads(content)
+        content = content.split("```yaml", 1)[1].split("```", 1)[0].strip()
+        result = yaml.safe_load(content)
 
-            # Ensure all required fields are present
-            required_fields = ["word", "phonetic", "partOfSpeech", "definition"]
-            for field in required_fields:
-                if field not in result:
-                    result[field] = ""
-
-            # Ensure optional fields have default values if missing
-            if "example" not in result:
-                result["example"] = ""
-            if "synonyms" not in result:
-                result["synonyms"] = []
-            if "flashcards" not in result:
-                result["flashcards"] = []
-
-            return result
-        except json.JSONDecodeError:
-            # If JSON parsing failed, create a basic response
-            return {
-                "word": word,
-                "phonetic": "",
-                "partOfSpeech": "",
-                "definition": content,  # Use the raw response as definition
-                "example": "",
-                "synonyms": [],
-                "flashcards": [],
-            }
+        required_fields = [
+            "query",
+            "type",
+            "explanation",
+            "pronunciation",
+            "related_items",
+            "quotes",
+            "anki_flashcards",
+        ]
+        for field in required_fields:
+            if field not in result:
+                if field in ["related_items", "quotes", "anki_flashcards"]:
+                    result[field] = []
+                else:
+                    result[field] = None
+        return result
     except Exception as e:
-        # Handle any LLM API errors
         return {
-            "word": word,
+            "query": query,
+            "type": "",
+            "explanation": f"Error generating definition: {str(e)}",
+            "pronunciation": None,
+            "related_items": [],
+            "quotes": [],
+            "anki_flashcards": [],
             "error": str(e),
-            "phonetic": "",
-            "partOfSpeech": "",
-            "definition": f"Error generating definition: {str(e)}",
-            "example": "",
-            "synonyms": [],
-            "flashcards": [],
         }
+
+
+# if __name__ == "__main__":
+#     model = get_model_by_id("gemini/gemini-2.0-flash")
+#     print(generate_definition("what is communism", model.id))

@@ -174,13 +174,13 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
         onChange={(e) => onPromptChange(e.target.value)}
         onKeyDown={handleKeyDown}
         className="w-full bg-white dark:bg-gray-800 px-4 py-3 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 min-h-[150px] max-h-[400px] overflow-y-auto border-0"
-        placeholder="Enter your prompt template here. Use {word} as a placeholder for the searched word."
+        placeholder="Enter your prompt template here. Use {query} as a placeholder for the search term."
       />
       <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/70 border-t border-gray-200 dark:border-gray-700">
         <p className="text-xs text-gray-500 dark:text-gray-400">
           Use{" "}
           <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-blue-500 dark:text-blue-400">
-            {"{word}"}
+            {"{query}"}
           </code>{" "}
           as a placeholder for the search term.
           <span className="ml-2 italic">
@@ -243,7 +243,7 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
           value={testWord}
           onChange={onTestWordChange}
           onKeyDown={handleKeyDown}
-          placeholder="Enter a word to test"
+          placeholder="Enter a query to test"
           className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
         />
         <Button
@@ -484,7 +484,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 
   const handleTestPrompt = async () => {
     if (!testWord.trim()) {
-      alert("Please enter a word to test");
+      alert("Please enter a query to test");
       return;
     }
 
@@ -496,7 +496,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     setIsGenerating(true);
     setGeneratedDefinition("");
 
-    const finalPrompt = promptTemplate.replace("{word}", testWord);
+    const finalPrompt = promptTemplate.replace("{query}", testWord);
 
     try {
       const response = await testModel(selectedModel, finalPrompt);
@@ -631,7 +631,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             - Version 0.1.0
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-            Created with ❤️ for smart word learning
+            Created with ❤️ for smart learning
           </p>
         </div>
       </Section>

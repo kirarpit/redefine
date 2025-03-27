@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.models.schemas import LLMModel
-from app.utils.db_utils import get_llm_models, add_llm_model, delete_llm_model
-from app.utils.llm_utils import test_prompt
+from app.utils import db_utils
+from app.utils import llm_utils
 import urllib.parse
 
 llm_bp = Blueprint("llm", __name__)
@@ -11,7 +11,7 @@ llm_bp = Blueprint("llm", __name__)
 def get_models():
     """Get all available LLM models."""
     # Return both default models and custom models
-    models = get_llm_models()
+    models = db_utils.get_llm_models()
     return jsonify({"models": models})
 
 
@@ -19,7 +19,6 @@ def get_models():
 def create_model():
     """Add a new LLM model."""
     data = request.json
-    print(data)
 
     # Validate required fields
     required_fields = ["name", "modelId", "apiKey"]
@@ -35,7 +34,7 @@ def create_model():
         apiKey=data["apiKey"],
         apiEndpoint=data.get("apiEndpoint", None),
     )
-    add_llm_model(model)
+    db_utils.add_llm_model(model)
     return jsonify({"message": "Model added successfully"}), 201
 
 
@@ -45,7 +44,7 @@ def remove_model(model_id):
         return jsonify({"error": "Model ID is required"}), 400
 
     decoded_model_id = urllib.parse.unquote(model_id)
-    success = delete_llm_model(decoded_model_id)
+    success = db_utils.delete_llm_model(decoded_model_id)
 
     if success:
         return jsonify({"message": "Model deleted successfully"}), 200
@@ -69,17 +68,11 @@ def test_model():
             return jsonify({"error": f"Invalid value for field: {field}"}), 400
 
     prompt = data["prompt"]
-
     try:
-        models = get_llm_models()
-        model = next((m for m in models if m["id"] == data["modelId"]), None)
-
+        model = llm_utils.get_model_by_id(data["modelId"])
         if not model:
             return jsonify({"error": "Model not found"}), 404
-
-        response = test_prompt(model, prompt)
-
+        response = llm_utils.test_prompt(model, prompt)
         return jsonify({"response": response}), 200
-
     except Exception as e:
         return jsonify({"error": f"Failed to generate response: {str(e)}"}), 500

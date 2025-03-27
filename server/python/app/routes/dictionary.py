@@ -9,23 +9,13 @@ dictionary_bp = Blueprint("dictionary", __name__)
 def search():
     """Search for a word definition."""
     word = request.args.get("q", "").lower()
-
     if not word:
         return jsonify({"error": "No search query provided"}), 400
-
     model_id = request.args.get("modelId")
-    api_key = request.args.get("apiKey")
-    api_endpoint = request.args.get("apiEndpoint")
-
-    if not model_id or not api_key:
-        return (
-            jsonify({"error": "LLM model ID and API key are required"}),
-            400,
-        )
-
-    # Generate definition using LLM
+    if not model_id:
+        return jsonify({"error": "LLM model ID is required"}), 400
     try:
-        definition = generate_definition(word, model_id, api_key, api_endpoint)
+        definition = generate_definition(word, model_id)
         return jsonify({"entry": definition})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
