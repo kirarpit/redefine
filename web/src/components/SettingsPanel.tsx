@@ -1,4 +1,4 @@
-import { useState, useEffect, FC, useRef } from "react";
+import { useState, useEffect, FC, useRef, KeyboardEvent } from "react";
 import { LLMModel } from "../types";
 import {
   fetchModels,
@@ -73,6 +73,7 @@ type PromptTemplateEditorProps = {
   isSaving: boolean;
   saveError: string | null;
   saveSuccess: boolean;
+  hasUnsavedChanges: boolean;
 };
 
 const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
@@ -83,8 +84,18 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
   isSaving,
   saveError,
   saveSuccess,
+  hasUnsavedChanges,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle command+enter or ctrl+enter to save
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Check for command/ctrl + enter
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      onSaveTemplate(promptTemplate);
+    }
+  };
 
   // Adjust textarea height based on content
   useEffect(() => {
@@ -112,6 +123,11 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
           Prompt Template
         </label>
         <div className="flex items-center space-x-2">
+          {hasUnsavedChanges && (
+            <span className="text-xs text-yellow-500 dark:text-yellow-400 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
+              Unsaved changes
+            </span>
+          )}
           {saveSuccess && (
             <span className="text-xs text-green-500 dark:text-green-400 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md">
               <svg
@@ -156,6 +172,7 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
         ref={textareaRef}
         value={promptTemplate}
         onChange={(e) => onPromptChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         className="w-full bg-white dark:bg-gray-800 px-4 py-3 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 min-h-[150px] max-h-[400px] overflow-y-auto border-0"
         placeholder="Enter your prompt template here. Use {word} as a placeholder for the searched word."
       />
@@ -166,6 +183,9 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
             {"{word}"}
           </code>{" "}
           as a placeholder for the search term.
+          <span className="ml-2 italic">
+            Press Cmd+Enter (or Ctrl+Enter) to save.
+          </span>
         </p>
       </div>
     </div>
@@ -190,50 +210,72 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
   generatedDefinition,
   selectedModel,
   modelName,
-}) => (
-  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-    <div className="flex justify-between items-center mb-3">
-      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        Test Your Prompt
-      </h4>
-      {selectedModel && (
-        <div className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1">
-          Using: <span className="font-medium">{modelName}</span>
+}) => {
+  // Handle Enter key press for test input
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (
+      e.key === "Enter" &&
+      !isGenerating &&
+      selectedModel &&
+      testWord.trim()
+    ) {
+      e.preventDefault();
+      onTest();
+    }
+  };
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+      <div className="flex justify-between items-center mb-3">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Test Your Prompt
+        </h4>
+        {selectedModel && (
+          <div className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-md px-2 py-1">
+            Using: <span className="font-medium">{modelName}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          value={testWord}
+          onChange={onTestWordChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Enter a word to test"
+          className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+        />
+        <Button
+          onClick={onTest}
+          disabled={isGenerating || !selectedModel || !testWord.trim()}
+        >
+          {isGenerating ? "Generating..." : "Test"}
+        </Button>
+      </div>
+
+      {generatedDefinition && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3 max-h-60 overflow-y-auto">
+          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm">
+            {generatedDefinition}
+            {isGenerating && <span className="animate-pulse">|</span>}
+          </div>
         </div>
       )}
     </div>
-
-    <div className="flex gap-2 mb-4">
-      <input
-        type="text"
-        value={testWord}
-        onChange={onTestWordChange}
-        placeholder="Enter a word to test"
-        className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-      />
-      <Button onClick={onTest} disabled={isGenerating || !selectedModel}>
-        {isGenerating ? "Generating..." : "Test"}
-      </Button>
-    </div>
-
-    {generatedDefinition && (
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md p-3 max-h-60 overflow-y-auto">
-        <div className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm">
-          {generatedDefinition}
-          {isGenerating && <span className="animate-pulse">|</span>}
-        </div>
-      </div>
-    )}
-  </div>
-);
+  );
+};
 
 // Main Component
 const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   // State variables
   const [promptTemplate, setPromptTemplate] = useState<string>("");
+  const [originalPromptTemplate, setOriginalPromptTemplate] =
+    useState<string>("");
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [promptSaveError, setPromptSaveError] = useState<string | null>(null);
   const [promptSaveSuccess, setPromptSaveSuccess] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [models, setModels] = useState<LLMModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -270,6 +312,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
         const savedTemplate = await fetchPromptTemplate();
         if (savedTemplate) {
           setPromptTemplate(savedTemplate);
+          setOriginalPromptTemplate(savedTemplate);
         }
 
         setError(null);
@@ -283,6 +326,34 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 
     loadInitialData();
   }, []);
+
+  // Check for unsaved changes
+  useEffect(() => {
+    setHasUnsavedChanges(promptTemplate !== originalPromptTemplate);
+  }, [promptTemplate, originalPromptTemplate]);
+
+  // Add beforeunload event handler for unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        // Standard way to show a confirmation dialog
+        const confirmationMessage =
+          "You have unsaved changes. Are you sure you want to leave?";
+        e.returnValue = confirmationMessage;
+        return confirmationMessage;
+      }
+    };
+
+    // Add event listener if there are unsaved changes
+    if (hasUnsavedChanges) {
+      window.addEventListener("beforeunload", handleBeforeUnload);
+    }
+
+    // Clean up
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   // Persist selected model to localStorage
   useEffect(() => {
@@ -298,6 +369,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     try {
       await savePromptTemplate(template);
       setPromptSaveSuccess(true);
+      setOriginalPromptTemplate(template); // Update the original template after successful save
+      setHasUnsavedChanges(false);
 
       // Clear success message after 3 seconds
       setTimeout(() => {
@@ -373,30 +446,39 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   };
 
   const handleResetToDefault = async () => {
-    if (window.confirm("Reset to default prompt template?")) {
-      try {
-        // Fetch the default template directly instead of saving an empty string
-        const defaultTemplate = await fetchPromptTemplate(true);
-        if (defaultTemplate) {
-          // Save the default template to the backend
-          await savePromptTemplate(defaultTemplate);
+    if (
+      hasUnsavedChanges &&
+      !window.confirm(
+        "You have unsaved changes. Are you sure you want to reset to default?"
+      )
+    ) {
+      return;
+    }
 
-          // Update local state
-          setPromptTemplate(defaultTemplate);
-          setPromptSaveSuccess(true);
+    try {
+      // Fetch the default template directly instead of saving an empty string
+      const defaultTemplate = await fetchPromptTemplate(true);
+      if (defaultTemplate) {
+        // Save the default template to the backend
+        await savePromptTemplate(defaultTemplate);
 
-          // Clear success message after 3 seconds
-          setTimeout(() => {
-            setPromptSaveSuccess(false);
-          }, 3000);
-        }
-      } catch (error) {
-        setPromptSaveError(
-          error instanceof Error
-            ? error.message
-            : "Failed to reset prompt template"
-        );
+        // Update local state
+        setPromptTemplate(defaultTemplate);
+        setOriginalPromptTemplate(defaultTemplate);
+        setHasUnsavedChanges(false);
+        setPromptSaveSuccess(true);
+
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setPromptSaveSuccess(false);
+        }, 3000);
       }
+    } catch (error) {
+      setPromptSaveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to reset prompt template"
+      );
     }
   };
 
@@ -507,6 +589,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             isSaving={isSavingPrompt}
             saveError={promptSaveError}
             saveSuccess={promptSaveSuccess}
+            hasUnsavedChanges={hasUnsavedChanges}
           />
 
           <TestPromptSection
