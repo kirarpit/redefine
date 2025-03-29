@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import SearchBar from "./SearchBar";
 import HistoryPanel from "./HistoryPanel";
 import SettingsPanel from "./SettingsPanel";
 import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
-import { dictionary } from "../data/dictionaryData";
+import { searchExplanation, getSelectedModelId } from "./SearchBar";
 
 type TabType = "search" | "history" | "settings";
 
@@ -82,6 +82,9 @@ const Redefine: React.FC = () => {
     return savedTab ? (JSON.parse(savedTab) as TabType) : "search";
   });
 
+  // Store interval reference
+  const streamIntervalRef = useRef<number | null>(null);
+
   // Lifted search state from SearchBar
   const [query, setQuery] = useState<string>("");
   const [wordData, setWordData] = useState<
@@ -101,6 +104,15 @@ const Redefine: React.FC = () => {
       return history ? JSON.parse(history) : [];
     }
   );
+  // New state for notifications and loading
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "error";
+    visible: boolean;
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showModelRequiredMessage, setShowModelRequiredMessage] =
+    useState<boolean>(false);
 
   useEffect(() => {
     console.log("Dark mode useEffect triggered. Current value:", darkMode);
@@ -128,34 +140,87 @@ const Redefine: React.FC = () => {
     localStorage.setItem("activeTab", JSON.stringify(activeTab));
   }, [activeTab]);
 
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (streamIntervalRef.current !== null) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   const toggleDarkMode = (): void => {
     setDarkMode((prev) => !prev);
   };
 
-  const handleNavigateToSearch = (word: string): void => {
-    setActiveTab("search");
-    setQuery(word);
+  const streamExplanation = (text: string): void => {
+    // Clear any existing interval
+    if (streamIntervalRef.current !== null) {
+      clearInterval(streamIntervalRef.current);
+      streamIntervalRef.current = null;
+    }
 
-    // Get dictionary data for the word
-    const data = dictionary[word.toLowerCase()];
-    if (data) {
-      setWordData(data);
-      // Simulate the streaming effect
-      if (data.explanation) {
-        setIsStreaming(true);
-        setStreamedText("");
-        let index = 0;
-        const streamInterval = setInterval(() => {
-          if (index < data.explanation.length) {
-            const currentChar = data.explanation.charAt(index);
-            setStreamedText((prev) => prev + currentChar);
-            index++;
-          } else {
-            clearInterval(streamInterval);
-            setIsStreaming(false);
-          }
-        }, 10);
+    setIsStreaming(true);
+    if (text.length === 0) return;
+
+    setStreamedText("");
+    let index = 0;
+
+    streamIntervalRef.current = window.setInterval(() => {
+      if (index < text.length) {
+        const currentChar = text.charAt(index);
+        setStreamedText((prev) => prev + currentChar);
+        index++;
+      } else {
+        if (streamIntervalRef.current !== null) {
+          clearInterval(streamIntervalRef.current);
+          streamIntervalRef.current = null;
+        }
+        setIsStreaming(false);
       }
+    }, 10);
+  };
+
+  const handleSearch = async (searchQuery: string): Promise<void> => {
+    if (!searchQuery) return;
+
+    // Clear any existing streaming interval
+    if (streamIntervalRef.current !== null) {
+      clearInterval(streamIntervalRef.current);
+      streamIntervalRef.current = null;
+    }
+
+    const isModelConfigured = (): boolean => {
+      const selectedModel = localStorage.getItem("selectedModel");
+      return !!selectedModel;
+    };
+
+    if (!isModelConfigured()) {
+      setShowModelRequiredMessage(true);
+      return;
+    }
+
+    setQuery(searchQuery);
+    setIsStreaming(false);
+    setStreamedText("");
+
+    // Set loading states
+    setIsLoading(true);
+    setWordData(null);
+
+    try {
+      const modelId = getSelectedModelId();
+      if (!modelId) {
+        setShowModelRequiredMessage(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await searchExplanation(searchQuery, modelId);
+
+      setWordData(data);
+      streamExplanation(data.explanation);
 
       setSearchHistory((prev) => {
         const filteredHistory = prev.filter(
@@ -166,13 +231,26 @@ const Redefine: React.FC = () => {
           ...filteredHistory,
         ].slice(0, 100);
       });
-    } else {
+    } catch (error) {
+      console.error("Error searching:", error);
       setWordData({
-        query: word,
+        query: searchQuery,
         error: true,
       });
       setStreamedText("");
+      setNotification({
+        message: "Failed to retrieve explanation. Please try again later.",
+        type: "error",
+        visible: true,
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleNavigateToSearch = (word: string): void => {
+    setActiveTab("search");
+    handleSearch(word);
   };
 
   const handleNavigateToSettings = () => {
@@ -241,6 +319,12 @@ const Redefine: React.FC = () => {
               searchHistory={searchHistory}
               setSearchHistory={setSearchHistory}
               onNavigateToSettings={handleNavigateToSettings}
+              handleSearch={handleSearch}
+              isLoading={isLoading}
+              notification={notification}
+              setNotification={setNotification}
+              showModelRequiredMessage={showModelRequiredMessage}
+              setShowModelRequiredMessage={setShowModelRequiredMessage}
             />
           </div>
           <div style={{ display: activeTab === "history" ? "block" : "none" }}>

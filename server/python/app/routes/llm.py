@@ -77,7 +77,6 @@ def test_model():
                 apiKey=data.get("apiKey", None),
                 apiEndpoint=data.get("apiEndpoint", None),
             )
-            print(model)
         else:
             model = llm_utils.get_model_by_id(data["modelId"])
             if not model:

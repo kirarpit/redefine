@@ -54,6 +54,22 @@ type SearchBarProps = {
   searchHistory: SearchHistoryItem[];
   setSearchHistory: React.Dispatch<React.SetStateAction<SearchHistoryItem[]>>;
   onNavigateToSettings?: () => void;
+  handleSearch: (searchQuery: string) => Promise<void>;
+  isLoading: boolean;
+  notification: {
+    message: string;
+    type: "success" | "error";
+    visible: boolean;
+  } | null;
+  setNotification: React.Dispatch<
+    React.SetStateAction<{
+      message: string;
+      type: "success" | "error";
+      visible: boolean;
+    } | null>
+  >;
+  showModelRequiredMessage: boolean;
+  setShowModelRequiredMessage: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -70,19 +86,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
   searchHistory,
   setSearchHistory,
   onNavigateToSettings,
+  handleSearch,
+  isLoading,
+  notification,
+  setNotification,
+  showModelRequiredMessage,
+  setShowModelRequiredMessage,
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: "success" | "error";
-    visible: boolean;
-  } | null>(null);
-  const [showModelRequiredMessage, setShowModelRequiredMessage] =
-    useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isMouseActive, setIsMouseActive] = useState<boolean>(false);
 
   // Use the flashcard manager hook
@@ -92,11 +105,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     exportedFlashcards,
     setExportedFlashcards
   );
-
-  const isModelConfigured = (): boolean => {
-    const selectedModel = localStorage.getItem("selectedModel");
-    return !!selectedModel;
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -111,14 +119,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
     };
   }, []);
 
@@ -159,101 +159,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setIsMouseActive(true);
   };
 
-  const handleSearch = async (searchQuery: string): Promise<void> => {
-    if (!searchQuery) return;
-
-    if (!isModelConfigured()) {
-      setShowModelRequiredMessage(true);
-      return;
-    }
-
-    setQuery(searchQuery);
-    setSuggestions([]);
-    setSelectedIndex(null);
-
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    setIsStreaming(false);
-    setStreamedText("");
-
-    // Set loading states
-    setIsLoading(true);
-    setWordData(null);
-
-    try {
-      const modelId = getSelectedModelId();
-      if (!modelId) {
-        setShowModelRequiredMessage(true);
-        setIsLoading(false);
-        return;
-      }
-
-      const data = await searchExplanation(searchQuery, modelId);
-
-      setWordData(data);
-      streamExplanation(data.explanation);
-
-      setSearchHistory((prev) => {
-        const filteredHistory = prev.filter(
-          (item) => item.query !== data.query
-        );
-        return [
-          { query: data.query, timestamp: new Date().toISOString() },
-          ...filteredHistory,
-        ].slice(0, 100);
-      });
-    } catch (error) {
-      console.error("Error searching:", error);
-      setWordData({
-        query: searchQuery,
-        error: true,
-      });
-      setStreamedText("");
-      setNotification({
-        message: "Failed to retrieve explanation. Please try again later.",
-        type: "error",
-        visible: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const streamExplanation = (text: string): void => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    setIsStreaming(true);
-    if (text.length === 0) return;
-    setStreamedText("");
-    let index = 0;
-
-    intervalRef.current = setInterval(() => {
-      if (index < text.length) {
-        const currentChar = text.charAt(index);
-        setStreamedText((prev) => prev + currentChar);
-        index++;
-      } else {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        setIsStreaming(false);
-      }
-    }, 10);
-  };
-
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === "Enter") {
       if (selectedIndex !== null && suggestions[selectedIndex]) {
         handleSearch(suggestions[selectedIndex]);
+        setSuggestions([]);
       } else {
         handleSearch(query);
+        setSuggestions([]);
       }
     } else if (e.key === "ArrowDown") {
       setSelectedIndex((prevIndex) =>
@@ -278,6 +191,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleSuggestionClick = (suggestion: string): void => {
     handleSearch(suggestion);
+    setSuggestions([]);
   };
 
   return (
