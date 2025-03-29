@@ -4,6 +4,8 @@ import HistoryPanel from "./HistoryPanel";
 import SettingsPanel from "./SettingsPanel";
 import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
 import { searchExplanation, getSelectedModelId } from "./SearchBar";
+import logoLight from "../assets/logo-light.png";
+import logoDark from "../assets/logo-dark.png";
 
 type TabType = "search" | "history" | "settings";
 
@@ -262,13 +264,20 @@ const Redefine: React.FC = () => {
       <div className="w-full max-w-4xl mx-auto flex-1 p-4 md:py-12 md:px-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8">
           <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                redefine
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Understand anything in an elegant way.
-              </p>
+            <div className="flex items-center">
+              <img
+                src={darkMode ? logoDark : logoLight}
+                alt="Redefine logo"
+                className="h-8 md:h-10 mr-3"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Redefine
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  AI-powered learning reimagined.
+                </p>
+              </div>
             </div>
             <button
               onClick={toggleDarkMode}
