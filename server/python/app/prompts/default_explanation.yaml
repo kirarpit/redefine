@@ -22,7 +22,7 @@ prompt:
     query: <string>
     type: <string>
     explanation: >\n<string>
-    pronunciation: <string> # key words as a single string
+    pronunciation: >\n<string> # key words as a single string
     related_items:
       - <string>
     quotes:

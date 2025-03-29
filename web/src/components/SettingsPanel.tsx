@@ -90,8 +90,8 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
 
   // Handle command+enter or ctrl+enter to save
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Check for command/ctrl + enter
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+    // Check for command/ctrl + enter or command/ctrl + s
+    if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key === "s")) {
       e.preventDefault();
       onSaveTemplate(promptTemplate);
     }
