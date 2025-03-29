@@ -134,4 +134,55 @@ export const dictionary: Record<string, ExplanationEntry> = {
       },
     ],
   },
+  "new york": {
+    query: "New York",
+    pronunciation: "/ˌnuː ˈjɔːrk/",
+    type: "location",
+    explanation:
+      "New York is a major city in the northeastern United States, known as a global center for finance, culture, art, and entertainment. Often called 'The Big Apple', it's home to iconic landmarks like the Statue of Liberty, Empire State Building, Central Park, and Times Square. As the most populous city in the US, it's characterized by its bustling streets, diverse neighborhoods, world-class museums, Broadway theaters, and distinctive skyline.",
+    quotes: [
+      "New York's energy is palpable - a city that truly never sleeps, constantly evolving while maintaining its historic character."
+    ],
+    related_items: ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island", "Empire State Building", "Central Park"],
+    flashcards: [
+      {
+        front: "What city is nicknamed 'The Big Apple'?",
+        back: "New York",
+      },
+      {
+        front: "New York",
+        back: "A major global city in the northeastern United States, known for finance, culture, and iconic landmarks",
+      },
+      {
+        front: "What five boroughs make up New York City?",
+        back: "Manhattan, Brooklyn, Queens, Bronx, and Staten Island",
+      },
+    ],
+  },
+  "paris": {
+    query: "Paris",
+    pronunciation: "/ˈpærɪs/",
+    type: "location",
+    explanation:
+      "Paris is the capital and largest city of France, known as the 'City of Light' (La Ville Lumière). Famous for its iconic landmarks such as the Eiffel Tower, Louvre Museum, Notre-Dame Cathedral, and Arc de Triomphe, Paris is a global center for art, fashion, gastronomy, and culture. The city is divided by the Seine River and organized into 20 arrondissements (districts), each with its own character and attractions.",
+    quotes: [
+      "Paris is always a good idea. - Audrey Hepburn"
+    ],
+    related_items: ["Eiffel Tower", "Louvre", "Notre-Dame", "Champs-Élysées", "Montmartre", "Seine River"],
+    synonyms: ["City of Light", "La Ville Lumière", "French capital"],
+    flashcards: [
+      {
+        front: "What European capital is known as the 'City of Light'?",
+        back: "Paris",
+      },
+      {
+        front: "Paris",
+        back: "The capital of France, known for the Eiffel Tower, Louvre Museum, and being a center of art and culture",
+      },
+      {
+        front: "Which iconic iron structure in Paris was built for the 1889 World's Fair?",
+        back: "The Eiffel Tower",
+      },
+    ],
+  }
 };
