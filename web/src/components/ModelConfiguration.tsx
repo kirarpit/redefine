@@ -7,7 +7,6 @@ const API_BASE_URL = "http://localhost:5000/api";
 // API service functions for model management
 export const fetchModels = async (): Promise<LLMModel[]> => {
   try {
-    console.log("Fetching models");
     const response = await fetch(`${API_BASE_URL}/llm/models`);
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
@@ -27,7 +26,6 @@ export const addModel = async (model: {
   apiEndpoint?: string;
 }): Promise<boolean> => {
   try {
-    console.log(model);
     const response = await fetch(`${API_BASE_URL}/llm/models`, {
       method: "POST",
       headers: {
@@ -53,7 +51,6 @@ export const addModel = async (model: {
 export const deleteModel = async (modelId: string): Promise<boolean> => {
   try {
     // Encode the modelId to handle forward slashes
-    console.log("Deleting model", modelId);
     const encodedModelId = encodeURIComponent(modelId);
     const response = await fetch(
       `${API_BASE_URL}/llm/models/${encodedModelId}`,
@@ -78,20 +75,27 @@ export const deleteModel = async (modelId: string): Promise<boolean> => {
 
 export const testModel = async (
   modelId: string,
-  prompt: string
+  prompt: string,
+  apiKey?: string,
+  apiEndpoint?: string,
+  skipLookup?: boolean
 ): Promise<string> => {
   try {
-    console.log("Testing model", modelId, prompt);
-    const response = await fetch(`${API_BASE_URL}/llm/test`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        modelId,
-        prompt,
-      }),
-    });
+    const response = await fetch(
+      `${API_BASE_URL}/llm/test?skipLookup=${skipLookup}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          modelId,
+          prompt,
+          apiKey,
+          apiEndpoint,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -103,7 +107,7 @@ export const testModel = async (
     const data = await response.json();
     return data.response;
   } catch (error) {
-    console.error("Error testing model:", error);
+    console.error(error);
     throw error;
   }
 };
@@ -193,30 +197,65 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
   } | null>(null);
   const [modelIdError, setModelIdError] = useState("");
 
-  const testApiConnection = () => {
+  // Modify the testApiConnection function to make it reusable and return a promise
+  const testApiConnection = async (showUI = true): Promise<boolean> => {
     if (!newModelApiKey.trim()) {
       alert("Please enter an API key");
-      return;
+      return false;
     }
 
-    setTestingModel(true);
-    setTestResult(null);
+    if (!newModelId.trim()) {
+      alert("Please enter a Model ID");
+      return false;
+    }
 
-    // Simulate API test
-    setTimeout(() => {
-      if (newModelApiKey.includes("invalid")) {
-        setTestResult({
-          success: false,
-          message: "Authentication failed. Please check your API key.",
-        });
-      } else {
+    if (showUI) {
+      setTestingModel(true);
+      setTestResult(null);
+    }
+
+    try {
+      // Create temporary model ID for testing
+      const tempModelId = newModelId;
+      const testPrompt = "hello world";
+
+      // Make a real API call to test the model
+      await testModel(
+        tempModelId,
+        testPrompt,
+        newModelApiKey,
+        newModelApiEndpoint,
+        true
+      );
+
+      if (showUI) {
         setTestResult({
           success: true,
           message: "Connection successful! Your API key works correctly.",
         });
       }
-      setTestingModel(false);
-    }, 1500);
+
+      return true;
+    } catch (error: any) {
+      if (showUI) {
+        setTestResult({
+          success: false,
+          message:
+            error.message ||
+            "Failed to connect. Please check your API details.",
+        });
+      }
+      return false;
+    } finally {
+      if (showUI) {
+        setTestingModel(false);
+      }
+    }
+  };
+
+  // Button click handler for the Test Connection button
+  const handleTestButtonClick = () => {
+    testApiConnection(true);
   };
 
   // Validate model ID format (provider/model-id)
@@ -237,7 +276,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
     validateModelId(id);
   };
 
-  const handleAddModel = () => {
+  const handleAddModel = async () => {
     if (!newModelId.trim() || !newModelApiKey.trim()) {
       alert("Please fill in all required fields");
       return;
@@ -245,6 +284,15 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
 
     if (!validateModelId(newModelId)) {
       return;
+    }
+
+    // Always test the model before adding it
+    setTestingModel(true);
+    const testSuccess = await testApiConnection(true);
+
+    // Only proceed if the test is successful
+    if (!testSuccess) {
+      return; // Exit without adding the model
     }
 
     // Extract model name from the part after the forward slash if name is empty
@@ -348,7 +396,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
 
         <div className="pt-1">
           <Button
-            onClick={testApiConnection}
+            onClick={handleTestButtonClick}
             disabled={testingModel || !newModelApiKey}
             variant="secondary"
             className="mr-2"
@@ -357,15 +405,84 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
           </Button>
 
           {testResult && (
-            <span
-              className={`text-xs ${
+            <div
+              className={`mt-2 p-3 rounded-md flex items-start ${
                 testResult.success
-                  ? "text-green-500 dark:text-green-400"
-                  : "text-red-500 dark:text-red-400"
+                  ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+                  : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
               }`}
             >
-              {testResult.message}
-            </span>
+              {testResult.success ? (
+                <svg
+                  className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  className="w-5 h-5 text-red-500 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              )}
+              <div className="flex-1">
+                <p
+                  className={`text-sm font-medium ${
+                    testResult.success
+                      ? "text-green-800 dark:text-green-300"
+                      : "text-red-800 dark:text-red-300"
+                  }`}
+                >
+                  {testResult.success
+                    ? "Connection Successful"
+                    : "Connection Failed"}
+                </p>
+                <p
+                  className={`text-xs mt-0.5 ${
+                    testResult.success
+                      ? "text-green-700 dark:text-green-400"
+                      : "text-red-700 dark:text-red-400"
+                  }`}
+                >
+                  {testResult.message}
+                </p>
+                {!testResult.success && (
+                  <ul className="text-xs text-red-700 dark:text-red-400 mt-1 ml-4 list-disc">
+                    <li>
+                      Check your provider is supported:{" "}
+                      <a
+                        href="https://docs.litellm.ai/docs/providers"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        https://docs.litellm.ai/docs/providers
+                      </a>
+                    </li>
+                    <li>Check that the model ID is valid for your provider</li>
+                    <li>Verify your API key is correct and hasn't expired</li>
+                    <li>Ensure your API endpoint is correct (if provided)</li>
+                  </ul>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

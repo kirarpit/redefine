@@ -388,11 +388,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   };
 
   const handleAddModel = async (newModel: LLMModel) => {
-    // Check for duplicate IDs
-    if (models.some((model) => model.id === newModel.id)) {
-      alert("A model with this ID already exists. Please use a unique ID.");
-      return;
-    }
+    // // Check for duplicate IDs
+    // if (models.some((model) => model.id === newModel.id)) {
+    //   alert("A model with this ID already exists. Please use a unique ID.");
+    //   return;
+    // }
 
     try {
       // Call API to add model

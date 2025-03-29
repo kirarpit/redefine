@@ -56,6 +56,7 @@ def remove_model(model_id):
 def test_model():
     """Test an LLM model with a prompt."""
     data = request.json
+    skip_lookup = request.args.get("skipLookup", "").lower() == "true"
 
     if not data or not isinstance(data, dict):
         return jsonify({"error": "Invalid request body"}), 400
@@ -69,10 +70,19 @@ def test_model():
 
     prompt = data["prompt"]
     try:
-        model = llm_utils.get_model_by_id(data["modelId"])
-        if not model:
-            return jsonify({"error": "Model not found"}), 404
+        if skip_lookup:
+            model = LLMModel(
+                id=data["modelId"],
+                name=data.get("name", None) or data["modelId"],
+                apiKey=data.get("apiKey", None),
+                apiEndpoint=data.get("apiEndpoint", None),
+            )
+            print(model)
+        else:
+            model = llm_utils.get_model_by_id(data["modelId"])
+            if not model:
+                return jsonify({"error": "Model not found"}), 404
         response = llm_utils.test_prompt(model, prompt)
         return jsonify({"response": response}), 200
     except Exception as e:
-        return jsonify({"error": f"Failed to generate response: {str(e)}"}), 500
+        return jsonify({"error": f"{str(e)}"}), 500
