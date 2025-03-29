@@ -18,30 +18,6 @@ const LocationMap: React.FC<{ location: string }> = ({ location }) => {
         <h3 className="text-sm text-gray-500 dark:text-gray-400 font-medium">
           Location Map
         </h3>
-        <div className="flex space-x-2">
-          <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 text-sm flex items-center"
-          >
-            <span>Open in Google Maps</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 ml-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </a>
-        </div>
       </div>
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <iframe
@@ -53,9 +29,6 @@ const LocationMap: React.FC<{ location: string }> = ({ location }) => {
           referrerPolicy="no-referrer-when-downgrade"
           title={`Map of ${location}`}
         ></iframe>
-      </div>
-      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic">
-        View more details about {location} by clicking "Open in Google Maps"
       </div>
     </div>
   );
@@ -486,14 +459,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 {wordData.type}
               </div>
 
-              <div className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6 min-h-24">
+              <div className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6 min-h-18">
                 {streamedText}
                 {isStreaming && <span className="animate-pulse">|</span>}
               </div>
-
-              {wordData.type === "location" && (
-                <LocationMap location={wordData.query} />
-              )}
 
               {wordData.quotes && wordData.quotes.length > 0 && (
                 <div className="text-gray-600 dark:text-gray-400 italic mb-6 pl-4 border-l-2 border-gray-200 dark:border-gray-600">
@@ -502,6 +471,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   ))}
                 </div>
               )}
+
+              {wordData.type
+                .toLowerCase()
+                .match(
+                  /(location|region|place|area|city|country|state|province)/
+                ) && <LocationMap location={wordData.query} />}
 
               {wordData.related_items && wordData.related_items.length > 0 && (
                 <div className="mb-6">
