@@ -83,6 +83,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const [showModelRequiredMessage, setShowModelRequiredMessage] =
     useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isMouseActive, setIsMouseActive] = useState<boolean>(false);
 
   // Use the flashcard manager hook
   const flashcardManager = useFlashcardManager(
@@ -151,6 +152,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
     setSuggestions(filteredSuggestions);
     setSelectedIndex(null);
+    setIsMouseActive(false);
+  };
+
+  const handleMouseMove = (): void => {
+    setIsMouseActive(true);
   };
 
   const handleSearch = async (searchQuery: string): Promise<void> => {
@@ -442,13 +448,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
         </div>
 
         {suggestions.length > 0 && (
-          <ul className="absolute z-10 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-auto">
+          <ul
+            className="absolute z-10 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-auto"
+            onMouseMove={handleMouseMove}
+          >
             {suggestions.map((suggestion, index) => (
               <li
                 key={index}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className={`px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${
+                className={`px-4 py-2 cursor-pointer ${
                   selectedIndex === index ? "bg-gray-100 dark:bg-gray-700" : ""
+                } ${
+                  isMouseActive
+                    ? "hover:bg-gray-100 dark:hover:bg-gray-700"
+                    : ""
                 } text-gray-700 dark:text-gray-200`}
               >
                 {suggestion}
