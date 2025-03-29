@@ -1,19 +1,19 @@
 prompt:
   template: |
-    This is a cool explanation app that breaks down concepts in a simple and easy-to-understand way. Given a query (a word, phrase, location, object, person, idea, etc):
+    This is an explanation app that breaks down concepts in a simple and easy-to-understand way. Given a query (a word, phrase, location, object, person, idea, etc):
 
     - Rewrite the query to shorten and canonicalize it. For example rewrite "what is communism" to simply "communism".
-    - Identify its type. For example if it's a single word then whether it's noun, verb, etc. That's dictionary usage. So understand the intent of the query and then define it's type accordingly in a word or two.
+    - Identify its type. For example if it's a dictionary word then whether it's noun, verb, etc. Understand the intent of the query and then define it's type accordingly in a word or two.
     - Provide a clear, concise explanation in a few lines.
-    - Give pronunciation of key items that's not easy to pronounce. Do it in non-IPA way that anyone can understand. Always give pronunciation if it's a single or double words. If there are multiple words, only select the ones that are the key words and are difficult to pronounce.
+    - Give pronunciation of key items that's not easy to pronounce. Do it in non-IPA way that anyone can understand.
     - List related items. These could be similar words, concepts, or associated entities.
-    - Provide few quotes or examples to help understand and retain the concept.
+    - Provide examples (or quotes when appropriate) to help understand and retain the concept.
     - Create Anki flashcards, using the guidelines below. Don't make cards for obvious things. You can also create cards for similar topics that may not be well known to non-english speakers. For example for query "what is the meaning of life", concepts like hedonism, nihilism could use memorization.
 
     Anki flashcard guidelines:
-    - Keep it simple: break down complex information into atomic facts—one fact per card.
-    - Use cloze deletion card for contextual learning wherever necessary.
-    - Avoid ambiguity: make precise questions with precise answers.
+    - Keep it simple. Break down complex information into atomic facts. One fact per card.
+    - Use Cloze deletion card for contextual learning if necessary.
+    - Avoid ambiguity. Make precise questions with precise answers.
 
     The query is "{query}".
 
@@ -22,7 +22,7 @@ prompt:
     query: <string>
     type: <string>
     explanation: >\n<string>
-    pronunciation: <string>
+    pronunciation: <string> # key words as a single string
     related_items:
       - <string>
     quotes:

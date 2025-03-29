@@ -41,9 +41,7 @@ def save_template():
     if not data["template"] or not isinstance(data["template"], str):
         return jsonify({"error": "Invalid value for field: template"}), 400
 
-    # Save the template to the database
     success = db_utils.save_prompt_template(data["template"])
-
     if success:
         return jsonify({"message": "Prompt template saved successfully"}), 200
     else:
