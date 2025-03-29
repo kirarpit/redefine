@@ -2,9 +2,13 @@ import os
 import yaml
 from typing import Dict, Any, Optional
 import litellm
+from litellm.caching import Cache
 from app.models.schemas import LLMModel
 from app.utils import db_utils
 import logging
+
+# Initialize in-memory cache with 3 days TTL (259200 seconds)
+litellm.cache = Cache(type="local", ttl=259200)
 
 
 def set_api_key(model: LLMModel) -> None:
@@ -36,7 +40,8 @@ def test_prompt(model: LLMModel, prompt: str) -> str:
             messages=[
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.7,
+            temperature=0.3,
+            caching=True,
         )
         content = response.choices[0].message.content
         return content
@@ -72,7 +77,8 @@ def generate_explanation(query: str, model_id: str) -> Dict[str, Any]:
             messages=[
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.0,
+            temperature=0.1,
+            caching=True,
         )
 
         content = response.choices[0].message.content

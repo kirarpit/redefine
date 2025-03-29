@@ -150,7 +150,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   <button
                     className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
                     onClick={() => {
-                      // Navigate to search tab and search for this query
                       onNavigateToSearch(item.query);
                     }}
                   >
