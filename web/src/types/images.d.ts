@@ -14,6 +14,13 @@ declare module '*.jpeg' {
 }
 
 declare module '*.svg' {
-  const content: React.FC<React.SVGProps<SVGSVGElement>>;
+  import * as React from 'react';
+  
+  // This allows importing SVGs both as strings and as React components
+  const ReactComponent: React.FC<React.SVGProps<SVGSVGElement>>;
+  
+  // Default export is path as string for <img src={} /> usage
+  const content: string;
+  export { ReactComponent };
   export default content;
 } 

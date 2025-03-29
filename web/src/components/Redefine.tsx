@@ -4,8 +4,7 @@ import HistoryPanel from "./HistoryPanel";
 import SettingsPanel from "./SettingsPanel";
 import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
 import { searchExplanation, getSelectedModelId } from "./SearchBar";
-import logoLight from "../assets/logo-light.png";
-import logoDark from "../assets/logo-dark.png";
+import logo from "../assets/logo.svg";
 
 type TabType = "search" | "history" | "settings";
 
@@ -266,9 +265,11 @@ const Redefine: React.FC = () => {
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center">
               <img
-                src={darkMode ? logoDark : logoLight}
+                src={logo}
                 alt="Redefine logo"
-                className="h-8 md:h-10 mr-3"
+                className={`h-8 md:h-10 mr-3 ${
+                  darkMode ? "logo-dark-mode" : ""
+                }`}
               />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">

@@ -9,3 +9,8 @@ body {
 :root.dark body {
   background-color: rgb(17, 24, 39); /* bg-gray-900 */
 }
+
+/* Logo styles for dark/light mode */
+.logo-dark-mode {
+  filter: invert(1) brightness(1.5);
+}
