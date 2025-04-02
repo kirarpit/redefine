@@ -1,12 +1,10 @@
-version: "3.8"
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5612:5612"
+      - "5612:5000"
     environment:
       # Database connection
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}

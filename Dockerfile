@@ -37,26 +37,12 @@ COPY server/python/ ./
 COPY --from=frontend-build /app/web/build ./static
 
 # Set environment variables
-ENV FLASK_APP=app.py
+ENV FLASK_APP=serve.py
 ENV FLASK_ENV=production
 ENV STATIC_FOLDER=./static
 
-# Create a wrapper script to serve static files through Flask
-RUN echo '#!/usr/bin/env python3
-import os
-from app import create_app
-
-app = create_app()
-
-# Configure Flask to serve static files
-app.static_folder = os.environ.get("STATIC_FOLDER", "./static")
-
-if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=5612)
-' > serve.py && chmod +x serve.py
-
 # Expose the port the app runs on
-EXPOSE 5612
+EXPOSE 5000
 
 # Command to run the application
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5612", "serve:app"] 
+CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "serve:app"] 

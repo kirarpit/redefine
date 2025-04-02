@@ -9,8 +9,7 @@ import {
   AddModelForm,
 } from "./ModelConfiguration";
 import { Card, Button, Section, Toggle } from "./UIComponents";
-
-const API_BASE_URL = "http://localhost:5000/api";
+import { API_BASE_URL } from "../config";
 
 // API service functions for prompt template
 const savePromptTemplate = async (template: string): Promise<boolean> => {

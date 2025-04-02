@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
 import { useFlashcardManager, FlashcardList } from "./Flashcard";
 import { dictionary } from "../data/dictionaryData";
-
-const API_BASE_URL = "http://localhost:5000/api";
+import { API_BASE_URL } from "../config";
 
 // Simple LocationMap component
 const LocationMap: React.FC<{ location: string }> = ({ location }) => {
