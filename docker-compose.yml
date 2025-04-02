@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5612:5612"
+    environment:
+      # Database connection
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      # Security key for encrypting/decrypting sensitive data
+      - SALT_KEY=${SALT_KEY}
+      # Flask configuration
+      - FLASK_ENV=${FLASK_ENV:-production}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      # Store PostgreSQL data in a named volume for persistence
+      # For backups, you can access this data or use pg_dump
+      # Location on host: /var/lib/docker/volumes/redefine_postgres_data/_data
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  # Define a named volume for PostgreSQL data
+  # To backup: docker exec -t redefine_db_1 pg_dumpall -c -U ${DB_USER} > backup.sql
+  # To restore: cat backup.sql | docker exec -i redefine_db_1 psql -U ${DB_USER} -d ${DB_NAME}
+  postgres_data:
+    driver: local
