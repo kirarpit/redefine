@@ -17,7 +17,6 @@ func DatabasePath() string {
 func SaltKey() string {
 	saltKey := os.Getenv("SALT_KEY")
 	if saltKey == "" {
-		// Default salt key for development - DO NOT USE IN PRODUCTION
 		saltKey = "redefine-default-salt-key"
 	}
 	return saltKey

@@ -17,8 +17,8 @@ type PromptData struct {
 	} `yaml:"prompt"`
 }
 
-// LoadPromptTemplate loads the default prompt template from the YAML file
-func LoadPromptTemplate() (string, error) {
+// LoadPromptTemplateFromFile loads the default prompt template from the YAML file
+func LoadPromptTemplateFromFile() (string, error) {
 	// Get the project root directory
 	rootDir, err := os.Getwd()
 	if err != nil {
@@ -57,4 +57,4 @@ func LoadPromptTemplate() (string, error) {
 	}
 
 	return promptData.Prompt.Template, nil
-} 
+}

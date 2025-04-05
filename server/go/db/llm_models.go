@@ -2,8 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"redefine/server/crypto"
 	"redefine/server/models"
-	"redefine/server/utils"
 )
 
 // GetLLMModels retrieves all LLM models from the database
@@ -18,7 +18,7 @@ func GetLLMModels() ([]models.LLMModel, error) {
 	}
 	defer rows.Close()
 
-	var models []models.LLMModel
+	var llmModels []models.LLMModel
 	for rows.Next() {
 		var m models.LLMModel
 		var apiEndpoint sql.NullString
@@ -27,7 +27,7 @@ func GetLLMModels() ([]models.LLMModel, error) {
 		}
 
 		// Decrypt API key
-		decryptedKey, err := utils.DecryptAPIKey(m.APIKey)
+		decryptedKey, err := crypto.DecryptAPIKey(m.APIKey)
 		if err != nil {
 			return nil, err
 		}
@@ -38,14 +38,14 @@ func GetLLMModels() ([]models.LLMModel, error) {
 			m.APIEndpoint = apiEndpoint.String
 		}
 
-		models = append(models, m)
+		llmModels = append(llmModels, m)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return models, nil
+	return llmModels, nil
 }
 
 // GetLLMModelByID retrieves a single LLM model by ID
@@ -53,13 +53,13 @@ func GetLLMModelByID(id string) (*models.LLMModel, error) {
 	db := GetDB()
 	var model models.LLMModel
 	var apiEndpoint sql.NullString
-	
+
 	err := db.QueryRow(`
 		SELECT id, name, api_key, api_endpoint 
 		FROM llm_models 
 		WHERE id = ?
 	`, id).Scan(&model.ID, &model.Name, &model.APIKey, &apiEndpoint)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // Model not found
@@ -68,7 +68,7 @@ func GetLLMModelByID(id string) (*models.LLMModel, error) {
 	}
 
 	// Decrypt API key
-	decryptedKey, err := utils.DecryptAPIKey(model.APIKey)
+	decryptedKey, err := crypto.DecryptAPIKey(model.APIKey)
 	if err != nil {
 		return nil, err
 	}
@@ -85,17 +85,17 @@ func GetLLMModelByID(id string) (*models.LLMModel, error) {
 // AddLLMModel adds or updates an LLM model in the database
 func AddLLMModel(model models.LLMModel) (*models.LLMModel, error) {
 	// Encrypt API key before storing
-	encryptedKey, err := utils.EncryptAPIKey(model.APIKey)
+	encryptedKey, err := crypto.EncryptAPIKey(model.APIKey)
 	if err != nil {
 		return nil, err
 	}
 
 	db := GetDB()
-	
+
 	// Check if model already exists
 	var exists bool
 	err = db.QueryRow("SELECT 1 FROM llm_models WHERE id = ?", model.ID).Scan(&exists)
-	
+
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -137,4 +137,4 @@ func DeleteLLMModel(id string) (bool, error) {
 	}
 
 	return rowsAffected > 0, nil
-} 
+}
