@@ -7,11 +7,12 @@ import { API_BASE_URL } from "../config";
 export const fetchModels = async (): Promise<LLMModel[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/llm/models`);
+    console.log("Response", response);
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     const data = await response.json();
-    return data.models;
+    return data.models || [];
   } catch (error) {
     console.error("Error fetching models:", error);
     return [];
