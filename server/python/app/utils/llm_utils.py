@@ -7,8 +7,7 @@ from app.models.schemas import LLMModel
 from app.utils import db_utils
 import logging
 
-# Initialize in-memory cache with 3 days TTL (259200 seconds)
-litellm.cache = Cache(type="local", ttl=259200)
+custom_cache = {}
 
 
 def set_api_key(model: LLMModel) -> None:
@@ -41,7 +40,7 @@ def test_prompt(model: LLMModel, prompt: str) -> str:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.3,
-            caching=True,
+            caching=False,
         )
         content = response.choices[0].message.content
         return content
@@ -71,6 +70,12 @@ def generate_explanation(query: str, model_id: str) -> Dict[str, Any]:
     if not prompt_template:
         raise Exception("No prompt template found")
     prompt = prompt_template.format(query=query)
+
+    cache_key = f"{model_id}:{query}"
+    if cache_key in custom_cache:
+        logging.info(f"Using cached result for query: {query}")
+        return custom_cache[cache_key]
+
     try:
         response = litellm.completion(
             model=model.id,
@@ -78,30 +83,49 @@ def generate_explanation(query: str, model_id: str) -> Dict[str, Any]:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.1,
-            caching=True,
+            caching=False,  # Disable litellm caching as we'll use our custom cache
         )
 
         content = response.choices[0].message.content
         print(content)
-        content = content.split("```yaml", 1)[1].split("```", 1)[0].strip()
-        result = yaml.safe_load(content)
-        print(result)
-        required_fields = [
-            "query",
-            "type",
-            "explanation",
-            "pronunciation",
-            "related_items",
-            "quotes",
-            "flashcards",
-        ]
-        for field in required_fields:
-            if field not in result:
-                if field in ["related_items", "quotes", "flashcards"]:
-                    result[field] = []
-                else:
-                    result[field] = None
-        return result
+        try:
+            yaml_content = content.split("```yaml", 1)[1].split("```", 1)[0].strip()
+            result = yaml.safe_load(yaml_content)
+            print(result)
+
+            required_fields = [
+                "query",
+                "type",
+                "explanation",
+                "pronunciation",
+                "related_items",
+                "quotes",
+                "flashcards",
+            ]
+            for field in required_fields:
+                if field not in result:
+                    if field in ["related_items", "quotes", "flashcards"]:
+                        result[field] = []
+                    else:
+                        result[field] = None
+
+            custom_cache[cache_key] = result
+            return result
+
+        except (IndexError, yaml.YAMLError) as yaml_error:
+            logging.error(f"YAML parsing error: {str(yaml_error)}")
+            error_message = f"Error parsing response: {str(yaml_error)}"
+            return {
+                "query": query,
+                "type": "",
+                "explanation": error_message,
+                "pronunciation": None,
+                "related_items": [],
+                "quotes": [],
+                "flashcards": [],
+                "error": str(yaml_error),
+            }
+
     except Exception as e:
         logging.error(f"LLM call error: {str(e)}")
         return {

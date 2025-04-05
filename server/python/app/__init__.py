@@ -14,6 +14,7 @@ def create_app():
 
     # Enable CORS only in development mode
     if os.environ.get("FLASK_ENV") == "development":
+        print("CORS enabled")
         CORS(
             app,
             resources={r"/api/*": {"origins": "http://localhost:3000"}},
