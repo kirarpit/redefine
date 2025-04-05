@@ -3,7 +3,8 @@ package routes
 import (
 	"log"
 	"redefine/server/db"
-	"redefine/server/utils"
+	"redefine/server/llm"
+	_ "redefine/server/llm/providers" // Import for side effects (registering providers)
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,7 @@ func setupExplanationRoutes(api *gin.RouterGroup) {
 
 // search handles the search API endpoint
 func search(c *gin.Context) {
-	query := strings.ToLower(c.Query("q"))
+	query := c.Query("q")
 	if query == "" {
 		c.JSON(400, gin.H{"error": "No search query provided"})
 		return
@@ -49,12 +50,11 @@ func search(c *gin.Context) {
 	}
 
 	// Generate explanation using LLM
-	explanation, err := utils.GenerateExplanation(
+	explanation, err := llm.GenerateExplanation(
 		query,
 		modelID,
 		db.GetLLMModelByID,
 		func() (string, error) { return db.GetPromptTemplate() },
-		func(template string) error { return db.SavePromptTemplate(template) },
 	)
 	if err != nil {
 		log.Printf("Error generating explanation: %v", err)
@@ -67,7 +67,7 @@ func search(c *gin.Context) {
 
 // autosuggest handles the autosuggest API endpoint
 func autosuggest(c *gin.Context) {
-	prefix := strings.ToLower(c.Query("q"))
+	prefix := c.Query("q")
 	if prefix == "" {
 		c.JSON(200, []string{})
 		return

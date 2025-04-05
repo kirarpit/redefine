@@ -4,8 +4,9 @@ import (
 	"log"
 	"net/url"
 	"redefine/server/db"
+	"redefine/server/llm"
+	_ "redefine/server/llm/providers" // Import for side effects (registering providers)
 	"redefine/server/models"
-	"redefine/server/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -88,11 +89,6 @@ func removeModel(c *gin.Context) {
 		return
 	}
 
-	// The model_id param includes the leading slash, so remove it
-	if len(modelID) > 0 && modelID[0] == '/' {
-		modelID = modelID[1:]
-	}
-
 	// URL decode the model ID
 	decodedModelID, err := url.QueryUnescape(modelID)
 	if err != nil {
@@ -172,7 +168,7 @@ func testModel(c *gin.Context) {
 	}
 
 	// Test the model
-	response, err := utils.TestPrompt(model, request.Prompt)
+	response, err := llm.TestPrompt(model, request.Prompt)
 	if err != nil {
 		log.Printf("Error testing LLM model: %v", err)
 		c.JSON(500, gin.H{"error": err.Error()})

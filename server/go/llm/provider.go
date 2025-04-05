@@ -1,0 +1,73 @@
+package llm
+
+import (
+	"fmt"
+	"os"
+	"redefine/server/models"
+	"strings"
+)
+
+// Provider interface defines the contract that all LLM providers must implement
+type Provider interface {
+	// Call sends a prompt to the LLM and returns the response
+	Call(prompt string) (string, error)
+
+	// Name returns the name of the provider
+	Name() string
+}
+
+// ProviderFactory is a function type that creates a provider from a model configuration
+type ProviderFactory func(model *models.LLMModel) (Provider, error)
+
+// registry of provider factories
+var providerFactories = make(map[string]ProviderFactory)
+
+// RegisterProvider registers a new provider factory
+func RegisterProvider(prefix string, factory ProviderFactory) {
+	providerFactories[prefix] = factory
+}
+
+// GetProvider returns a provider for the given model
+func GetProvider(model *models.LLMModel) (Provider, error) {
+	// Extract provider prefix from model ID
+	prefix := model.ID
+	if strings.Contains(model.ID, "/") {
+		prefix = strings.Split(model.ID, "/")[0]
+	}
+
+	// Look up provider factory
+	factory, ok := providerFactories[prefix]
+	if !ok {
+		return nil, fmt.Errorf("unsupported model provider: %s", prefix)
+	}
+
+	// Create provider instance
+	return factory(model)
+}
+
+// SetAPIKey sets environment variables for API keys based on provider
+func SetAPIKey(model *models.LLMModel) {
+	provider := ""
+	if strings.Contains(model.ID, "/") {
+		provider = strings.Split(model.ID, "/")[0]
+	} else {
+		provider = model.ID
+	}
+
+	provider = strings.ToUpper(provider)
+
+	// Set API key environment variable
+	if model.APIKey != "" {
+		SetEnv(fmt.Sprintf("%s_API_KEY", provider), model.APIKey)
+	}
+
+	// Set API endpoint environment variable if provided
+	if model.APIEndpoint != "" {
+		SetEnv(fmt.Sprintf("%s_API_BASE", provider), model.APIEndpoint)
+	}
+}
+
+// SetEnv sets an environment variable - extracted for easier testing
+var SetEnv = func(key, value string) {
+	os.Setenv(key, value)
+}
