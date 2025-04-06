@@ -40,17 +40,12 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates tzdata
 ENV TZ="UTC"
 
-# Copy the binary from backend build
 COPY --from=backend-build /app/server/redefine-server .
 COPY --from=backend-build /app/server/prompts ./prompts
-
-# Copy the built frontend from the frontend build stage
 COPY --from=frontend-build /app/web/build ./static
 
-# Expose port
 EXPOSE 5000
 
-# Set environment variables
 ENV GIN_MODE=release
 ENV PORT=5000
 ENV DB_PATH=/data/redefine.db

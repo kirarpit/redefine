@@ -40,13 +40,11 @@ func main() {
 	// Set up API routes
 	routes.SetupRoutes(r)
 
-	// Set up static file serving
-	staticFolder := os.Getenv("STATIC_FOLDER")
-	if staticFolder == "" {
-		staticFolder = "./static"
-	}
-	r.Static("/static", staticFolder)
-	r.StaticFile("/", staticFolder+"/index.html")
+	r.Static("/static", "/app/static/static")
+	r.StaticFile("/", "/app/static/index.html")
+	r.NoRoute(func(c *gin.Context) {
+		c.File("/app/static/index.html")
+	})
 
 	// Start server
 	port := os.Getenv("PORT")
