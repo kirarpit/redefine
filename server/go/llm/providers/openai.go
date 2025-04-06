@@ -23,6 +23,8 @@ type openAIRequest struct {
 	Model       string          `json:"model"`
 	Messages    []openAIMessage `json:"messages"`
 	Temperature float64         `json:"temperature"`
+	MaxTokens   int             `json:"max_tokens,omitempty"`
+	TopP        float64         `json:"top_p,omitempty"`
 }
 
 // OpenAIResponse represents a response from the OpenAI API
@@ -69,7 +71,9 @@ func (p *OpenAIProvider) Call(prompt string, model *types.LLMModel) (string, err
 		Messages: []openAIMessage{
 			{Role: "user", Content: prompt},
 		},
-		Temperature: 0.1,
+		Temperature: 0.01,
+		MaxTokens:   2048,
+		TopP:        0.7,
 	}
 
 	// Convert to JSON

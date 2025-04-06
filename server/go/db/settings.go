@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 )
 
 const promptTemplateKey = "prompt_template"
@@ -10,13 +11,13 @@ const promptTemplateKey = "prompt_template"
 func GetPromptTemplate() (string, error) {
 	db := GetDB()
 	var template string
-	
+
 	err := db.QueryRow(`
 		SELECT value 
 		FROM app_settings 
 		WHERE key = ?
 	`, promptTemplateKey).Scan(&template)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", nil // No template found
@@ -30,11 +31,14 @@ func GetPromptTemplate() (string, error) {
 // SavePromptTemplate saves or updates the prompt template in the database
 func SavePromptTemplate(template string) error {
 	db := GetDB()
-	
+
+	// Trim whitespace and newline characters from the template
+	template = strings.TrimSpace(template)
+
 	// Check if template already exists
 	var exists bool
 	err := db.QueryRow("SELECT 1 FROM app_settings WHERE key = ?", promptTemplateKey).Scan(&exists)
-	
+
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -55,4 +59,4 @@ func SavePromptTemplate(template string) error {
 	}
 
 	return err
-} 
+}

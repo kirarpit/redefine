@@ -77,7 +77,7 @@ func (p *AnthropicProvider) Call(prompt string, model *types.LLMModel) (string, 
 		Messages: []anthropicMessage{
 			{Role: "user", Content: prompt},
 		},
-		Temperature: 0.1,
+		Temperature: 0.01,
 		MaxTokens:   2048,
 	}
 

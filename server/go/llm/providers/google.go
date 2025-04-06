@@ -100,10 +100,10 @@ func (p *GeminiProvider) Call(prompt string, model *types.LLMModel) (string, err
 			},
 		},
 		GenerationConfig: generationConfig{
-			Temperature:     0.2,
+			Temperature:     0.01,
 			MaxOutputTokens: 2048,
-			TopP:            0.95,
-			TopK:            40,
+			TopP:            0.7,
+			TopK:            10,
 		},
 	}
 

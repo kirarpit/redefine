@@ -38,7 +38,12 @@ func GetProvider(model *types.LLMModel) (Provider, error) {
 	// Look up provider factory
 	factory, ok := providerFactories[prefix]
 	if !ok {
-		return nil, fmt.Errorf("unsupported model provider: %s", prefix)
+		// Get a list of all supported providers
+		supportedProviders := make([]string, 0, len(providerFactories))
+		for p := range providerFactories {
+			supportedProviders = append(supportedProviders, p)
+		}
+		return nil, fmt.Errorf("unsupported model provider: %s. Supported providers are: %s", prefix, strings.Join(supportedProviders, ", "))
 	}
 
 	// Create provider instance

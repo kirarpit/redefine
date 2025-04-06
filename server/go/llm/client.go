@@ -2,7 +2,6 @@ package llm
 
 import (
 	"fmt"
-	"log"
 	"redefine/server/types"
 	"strings"
 
@@ -68,7 +67,6 @@ func (c *Client) CallAndParseYAML(prompt string) (*types.ExplanationEntry, error
 	if err := yaml.Unmarshal([]byte(yamlContent), &entry); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
-	log.Printf("Entry: %+v", entry)
 
 	// Ensure fields are initialized
 	if entry.RelatedItems == nil {
@@ -94,7 +92,6 @@ func GenerateExplanation(query string, modelID string, getModel ModelGetter, get
 	if model == nil {
 		return nil, fmt.Errorf("model with ID %s not found", modelID)
 	}
-	log.Printf("Model: %+v", model)
 
 	// Get prompt template
 	promptTemplate, err := getPrompt()
@@ -143,7 +140,6 @@ func TestPrompt(model *types.LLMModel, prompt string, processYAML bool) (string,
 	}
 
 	response, err := client.Call(prompt)
-	log.Printf("Response: %s", response)
 	if err != nil {
 		return "", fmt.Errorf("failed to call LLM: %w", err)
 	}
