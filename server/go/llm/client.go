@@ -34,7 +34,8 @@ func NewClient(model *models.LLMModel) (*Client, error) {
 
 // Call sends a prompt to the LLM and returns the response
 func (c *Client) Call(prompt string) (string, error) {
-	return c.provider.Call(prompt)
+	// Call the provider with the prompt and model
+	return c.provider.Call(prompt, c.model)
 }
 
 func extractYAML(content string) string {

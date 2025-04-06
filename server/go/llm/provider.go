@@ -9,14 +9,15 @@ import (
 // Provider interface defines the contract that all LLM providers must implement
 type Provider interface {
 	// Call sends a prompt to the LLM and returns the response
-	Call(prompt string) (string, error)
+	// Simplified to only take the model object and prompt
+	Call(prompt string, model *models.LLMModel) (string, error)
 
 	// Name returns the name of the provider
 	Name() string
 }
 
 // ProviderFactory is a function type that creates a provider from a model configuration
-type ProviderFactory func(model *models.LLMModel) (Provider, error)
+type ProviderFactory func() (Provider, error)
 
 // registry of provider factories
 var providerFactories = make(map[string]ProviderFactory)
@@ -41,5 +42,5 @@ func GetProvider(model *models.LLMModel) (Provider, error) {
 	}
 
 	// Create provider instance
-	return factory(model)
+	return factory()
 }

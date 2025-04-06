@@ -36,27 +36,12 @@ type openAIResponse struct {
 
 // OpenAIProvider implements the Provider interface for OpenAI models
 type OpenAIProvider struct {
-	model       *models.LLMModel
-	endpoint    string
-	actualModel string
+	// No longer stores model-specific information
 }
 
 // NewOpenAIProvider creates a new OpenAI provider
-func NewOpenAIProvider(model *models.LLMModel) (llm.Provider, error) {
-	// Extract model name from model ID
-	modelName := strings.TrimPrefix(model.ID, "openai/")
-
-	// Set default endpoint
-	endpoint := "https://api.openai.com/v1/chat/completions"
-	if model.APIEndpoint != "" {
-		endpoint = model.APIEndpoint
-	}
-
-	return &OpenAIProvider{
-		model:       model,
-		endpoint:    endpoint,
-		actualModel: modelName,
-	}, nil
+func NewOpenAIProvider() (llm.Provider, error) {
+	return &OpenAIProvider{}, nil
 }
 
 // Name returns the name of the provider
@@ -65,10 +50,22 @@ func (p *OpenAIProvider) Name() string {
 }
 
 // Call sends a prompt to the OpenAI API and returns the response
-func (p *OpenAIProvider) Call(prompt string) (string, error) {
+func (p *OpenAIProvider) Call(prompt string, model *models.LLMModel) (string, error) {
+	// Extract model name from model ID
+	modelName := model.ID
+	if strings.Contains(model.ID, "/") {
+		modelName = strings.TrimPrefix(model.ID, "openai/")
+	}
+
+	// Set default endpoint
+	endpoint := "https://api.openai.com/v1/chat/completions"
+	if model.APIEndpoint != "" {
+		endpoint = model.APIEndpoint
+	}
+
 	// Create request body
 	reqBody := openAIRequest{
-		Model: p.actualModel,
+		Model: modelName,
 		Messages: []openAIMessage{
 			{Role: "user", Content: prompt},
 		},
@@ -82,14 +79,14 @@ func (p *OpenAIProvider) Call(prompt string) (string, error) {
 	}
 
 	// Create request
-	req, err := http.NewRequest("POST", p.endpoint, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", p.model.APIKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", model.APIKey))
 
 	// Send request
 	client := &http.Client{Timeout: 30 * time.Second}

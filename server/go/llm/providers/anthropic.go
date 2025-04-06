@@ -44,27 +44,12 @@ type anthropicResponse struct {
 
 // AnthropicProvider implements the Provider interface for Anthropic models
 type AnthropicProvider struct {
-	model       *models.LLMModel
-	endpoint    string
-	actualModel string
+	// No longer stores model-specific information
 }
 
 // NewAnthropicProvider creates a new Anthropic provider
-func NewAnthropicProvider(model *models.LLMModel) (llm.Provider, error) {
-	// Extract model name from model ID
-	modelName := strings.TrimPrefix(model.ID, "anthropic/")
-
-	// Set default endpoint
-	endpoint := "https://api.anthropic.com/v1/messages"
-	if model.APIEndpoint != "" {
-		endpoint = model.APIEndpoint
-	}
-
-	return &AnthropicProvider{
-		model:       model,
-		endpoint:    endpoint,
-		actualModel: modelName,
-	}, nil
+func NewAnthropicProvider() (llm.Provider, error) {
+	return &AnthropicProvider{}, nil
 }
 
 // Name returns the name of the provider
@@ -73,10 +58,22 @@ func (p *AnthropicProvider) Name() string {
 }
 
 // Call sends a prompt to the Anthropic API and returns the response
-func (p *AnthropicProvider) Call(prompt string) (string, error) {
+func (p *AnthropicProvider) Call(prompt string, model *models.LLMModel) (string, error) {
+	// Extract model name from model ID
+	modelName := model.ID
+	if strings.Contains(model.ID, "/") {
+		modelName = strings.TrimPrefix(model.ID, "anthropic/")
+	}
+
+	// Set default endpoint
+	endpoint := "https://api.anthropic.com/v1/messages"
+	if model.APIEndpoint != "" {
+		endpoint = model.APIEndpoint
+	}
+
 	// Create request body
 	reqBody := anthropicRequest{
-		Model: p.actualModel,
+		Model: modelName,
 		Messages: []anthropicMessage{
 			{Role: "user", Content: prompt},
 		},
@@ -91,14 +88,14 @@ func (p *AnthropicProvider) Call(prompt string) (string, error) {
 	}
 
 	// Create request
-	req, err := http.NewRequest("POST", p.endpoint, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", p.model.APIKey)
+	req.Header.Set("x-api-key", model.APIKey)
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
 	// Send request
