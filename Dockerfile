@@ -38,11 +38,19 @@ WORKDIR /app
 
 # Install only essential dependencies
 RUN apk --no-cache add ca-certificates tzdata
+
+# Create a non-root user and group
+RUN addgroup --gid 1000 appgroup && adduser --uid 1000 --ingroup appgroup --disabled-password appuser
+
 ENV TZ="UTC"
 
 COPY --from=backend-build /app/server/redefine-server .
 COPY --from=backend-build /app/server/prompts ./prompts
 COPY --from=frontend-build /app/web/build ./static
+
+# Create data directory and set proper permissions
+RUN mkdir -p /data && \
+    chown -R appuser:appgroup /data /app
 
 EXPOSE 5000
 
@@ -52,6 +60,9 @@ ENV DB_PATH=/data/redefine.db
 
 # Create a volume for persistent data
 VOLUME ["/data"]
+
+# Switch to non-root user
+USER appuser:appgroup
 
 # Command to run the application
 CMD ["./redefine-server"] 

@@ -17,8 +17,5 @@ push:
 	@echo "🔐 Logging in to ghcr.io..."
 	@echo $$GHCR_PAT | docker login ghcr.io -u kirarpit --password-stdin
 	@echo "📦 Building and pushing image: $(FULL_IMAGE)"
-	@docker buildx build --platform $(PLATFORMS) \
-		--cache-from=type=registry,ref=$(FULL_IMAGE) \
-		--cache-to=type=inline \
-		-t $(FULL_IMAGE) --push .
+	@docker buildx build --provenance=false --no-cache --platform $(PLATFORMS) -t $(FULL_IMAGE) --push .
 	@echo "✅ Done!"

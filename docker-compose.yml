@@ -9,4 +9,9 @@ services:
       - SALT_KEY=${SALT_KEY}
     volumes:
       - ./data:/data
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
