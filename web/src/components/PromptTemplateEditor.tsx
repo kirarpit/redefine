@@ -94,17 +94,22 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
     if (!textarea) return;
 
     // Calculate line count
-    setLineCount(promptTemplate.split("\n").length);
+    const lines = promptTemplate.split("\n").length;
+    setLineCount(lines);
 
     if (!isExpanded) {
       // Reset height to auto to get the correct scrollHeight
       textarea.style.height = "auto";
 
-      // Calculate new height but set a maximum limit of 400px
-      const newHeight = Math.min(textarea.scrollHeight, 400);
+      // Calculate base height on content (24px per line + padding)
+      const contentBasedHeight = lines * 24 + 40;
 
-      // Set the height with a minimum of 150px
-      textarea.style.height = `${Math.max(150, newHeight)}px`;
+      // For very short content (1-2 lines), use a modest minimum height
+      // For longer content, allow more space up to the maximum
+      const minHeight = lines <= 2 ? 150 : 200;
+      const newHeight = Math.min(Math.max(minHeight, contentBasedHeight), 400);
+
+      textarea.style.height = `${newHeight}px`;
     }
   }, [promptTemplate, isExpanded]);
 
