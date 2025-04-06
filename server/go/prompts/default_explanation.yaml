@@ -11,7 +11,7 @@ prompt:
     - Create Anki flashcards, using the guidelines below. Don't make cards for obvious things. You can also create cards for similar topics that may not be well known to non-english speakers. For example for query "what is the meaning of life", concepts like hedonism, nihilism could use memorization.
 
     Anki flashcard guidelines:
-    Create 4-5 cards. Don’t create cards that just define the word or ask for a label. Avoid formats like: “Characterized by X. The adjective is {{c1::word}}.”
+    Create 3-4 cards. Don’t create cards that just define the word or ask for a label. Avoid formats like: “Characterized by X. The adjective is {{c1::word}}.”
     Instead:
     - Embed the word in a vivid, real-world sentence.
     - Make the context strong enough that only one specific word fits.
@@ -21,21 +21,23 @@ prompt:
     - Phrase the word as an adjective when possible to narrow down options.
     - Add subtle clues or disqualifiers to eliminate near-synonyms.
     - Use cloze deletions for clean, focused recall.
-    - Try double cloze deletions in the same sentence to map both word and meaning.
+    - Try double cloze deletions (c1, c2) in the same sentence to map both word and meaning.
 
     The query is "{query}".
 
     Output the response in the following YAML structure.
 
+    ```yaml
     query: <string>
     type: <string>
     explanation: >\s<string>
     pronunciation: >\s<string|null> # key words as a single string
     related_items:
       - <string>
-    quotes:
+    quotes: # or examples
       - >\s<string>
     flashcards:
       - type: one of [cloze, basic, reversed]
         front: >\s<string>
         back: >\s<string>
+    ```

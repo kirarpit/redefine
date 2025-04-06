@@ -1,4 +1,4 @@
-import { useState, useEffect, FC, useRef, KeyboardEvent } from "react";
+import { useState, useEffect, FC, useRef } from "react";
 import { LLMModel } from "../types";
 import {
   fetchModels,
@@ -10,6 +10,7 @@ import {
 } from "./ModelConfiguration";
 import { Card, Button, Section, Toggle } from "./UIComponents";
 import { API_BASE_URL } from "../config";
+import PromptTemplateEditor from "./PromptTemplateEditor";
 
 // API service functions for prompt template
 const savePromptTemplate = async (template: string): Promise<boolean> => {
@@ -64,131 +65,6 @@ type SettingsPanelProps = {
   // Add any props if needed
 };
 
-// Feature Components
-type PromptTemplateEditorProps = {
-  promptTemplate: string;
-  onPromptChange: (value: string) => void;
-  onResetToDefault: () => void;
-  onSaveTemplate: (template: string) => Promise<void>;
-  isSaving: boolean;
-  saveError: string | null;
-  saveSuccess: boolean;
-  hasUnsavedChanges: boolean;
-};
-
-const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
-  promptTemplate,
-  onPromptChange,
-  onResetToDefault,
-  onSaveTemplate,
-  isSaving,
-  saveError,
-  saveSuccess,
-  hasUnsavedChanges,
-}) => {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Handle command+enter or ctrl+enter to save
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Check for command/ctrl + enter or command/ctrl + s
-    if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key === "s")) {
-      e.preventDefault();
-      onSaveTemplate(promptTemplate);
-    }
-  };
-
-  // Adjust textarea height based on content
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = "auto";
-
-    // Calculate new height but set a maximum limit of 400px
-    const newHeight = Math.min(textarea.scrollHeight, 400);
-
-    // Set the height with a minimum of 150px
-    textarea.style.height = `${Math.max(150, newHeight)}px`;
-  }, [promptTemplate]);
-
-  const handleSave = () => {
-    onSaveTemplate(promptTemplate);
-  };
-
-  return (
-    <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-      <div className="flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-800/70 border-b border-gray-200 dark:border-gray-700">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Prompt Template
-        </label>
-        <div className="flex items-center space-x-2">
-          {hasUnsavedChanges && (
-            <span className="text-xs text-yellow-500 dark:text-yellow-400 px-2 py-1 bg-yellow-50 dark:bg-yellow-900/20 rounded-md">
-              Unsaved changes
-            </span>
-          )}
-          {saveSuccess && (
-            <span className="text-xs text-green-500 dark:text-green-400 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md">
-              <svg
-                className="w-3 h-3 inline-block mr-1"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Saved!
-            </span>
-          )}
-          {saveError && (
-            <span className="text-xs text-red-500 dark:text-red-400 px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded-md">
-              Error: {saveError}
-            </span>
-          )}
-          <button
-            onClick={onResetToDefault}
-            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          >
-            Reset to Default
-          </button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            variant="primary"
-            className="ml-2 text-xs py-1 px-3"
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-        </div>
-      </div>
-      <textarea
-        ref={textareaRef}
-        value={promptTemplate}
-        onChange={(e) => onPromptChange(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="w-full bg-white dark:bg-gray-800 px-4 py-3 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 min-h-[150px] max-h-[400px] overflow-y-auto border-0"
-        placeholder="Enter your prompt template here. Use {query} as a placeholder for the search term."
-      />
-      <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/70 border-t border-gray-200 dark:border-gray-700">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Use{" "}
-          <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded text-blue-500 dark:text-blue-400">
-            {"{query}"}
-          </code>{" "}
-          as a placeholder for the search term.
-        </p>
-      </div>
-    </div>
-  );
-};
-
 type TestPromptSectionProps = {
   testQuery: string;
   onTestQueryChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -208,7 +84,7 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
   selectedModel,
   modelName,
 }) => {
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (
       e.key === "Enter" &&
       !isGenerating &&
@@ -280,6 +156,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   const [selectedModel, setSelectedModel] = useState(() => {
     const saved = localStorage.getItem("selectedModel");
     return saved || "";
+  });
+
+  // Display settings
+  const [enableStreamingEffect, setEnableStreamingEffect] = useState(() => {
+    return localStorage.getItem("enableStreamingEffect") !== "false"; // default to true
+  });
+  const [autoSaveFlashcards, setAutoSaveFlashcards] = useState(() => {
+    return localStorage.getItem("autoSaveFlashcards") === "true"; // default to false
+  });
+  const [showPronunciationGuide, setShowPronunciationGuide] = useState(() => {
+    return localStorage.getItem("showPronunciationGuide") !== "false"; // default to true
+  });
+  const [enableExpandableEditor, setEnableExpandableEditor] = useState(() => {
+    return localStorage.getItem("enableExpandableEditor") !== "false"; // default to true
   });
 
   const [testQuery, setTestQuery] = useState("");
@@ -368,6 +258,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   useEffect(() => {
     localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
+
+  // Persist display settings to localStorage
+  useEffect(() => {
+    localStorage.setItem(
+      "enableStreamingEffect",
+      enableStreamingEffect.toString()
+    );
+    localStorage.setItem("autoSaveFlashcards", autoSaveFlashcards.toString());
+    localStorage.setItem(
+      "showPronunciationGuide",
+      showPronunciationGuide.toString()
+    );
+    localStorage.setItem(
+      "enableExpandableEditor",
+      enableExpandableEditor.toString()
+    );
+  }, [
+    enableStreamingEffect,
+    autoSaveFlashcards,
+    showPronunciationGuide,
+    enableExpandableEditor,
+  ]);
 
   // Handle saving prompt template to backend
   const handleSavePromptTemplate = async (template: string) => {
@@ -602,6 +514,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             saveError={promptSaveError}
             saveSuccess={promptSaveSuccess}
             hasUnsavedChanges={hasUnsavedChanges}
+            expandEnabled={enableExpandableEditor}
           />
 
           <TestPromptSection
@@ -623,13 +536,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
           <Toggle
             label="Enable streaming text effect"
             id="toggleStreaming"
-            defaultChecked={true}
+            defaultChecked={enableStreamingEffect}
+            onChange={(e) => setEnableStreamingEffect(e.target.checked)}
           />
-          <Toggle label="Auto-save flashcards" id="toggleAutoSave" />
+          <Toggle
+            label="Auto-save flashcards"
+            id="toggleAutoSave"
+            defaultChecked={autoSaveFlashcards}
+            onChange={(e) => setAutoSaveFlashcards(e.target.checked)}
+          />
           <Toggle
             label="Show pronunciation guide"
             id="togglePronunciation"
-            defaultChecked={true}
+            defaultChecked={showPronunciationGuide}
+            onChange={(e) => setShowPronunciationGuide(e.target.checked)}
+          />
+          <Toggle
+            label="Enable expandable prompt editor"
+            id="toggleExpandableEditor"
+            defaultChecked={enableExpandableEditor}
+            onChange={(e) => setEnableExpandableEditor(e.target.checked)}
           />
         </div>
       </Section>

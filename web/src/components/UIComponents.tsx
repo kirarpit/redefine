@@ -87,9 +87,15 @@ type ToggleProps = {
   label: string;
   id: string;
   defaultChecked?: boolean;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-export const Toggle: FC<ToggleProps> = ({ label, id, defaultChecked }) => (
+export const Toggle: FC<ToggleProps> = ({
+  label,
+  id,
+  defaultChecked,
+  onChange,
+}) => (
   <div className="flex items-center justify-between">
     <label className="text-sm text-gray-700 dark:text-gray-300">{label}</label>
     <div className="relative inline-block w-10 mr-2 align-middle select-none">
@@ -99,6 +105,7 @@ export const Toggle: FC<ToggleProps> = ({ label, id, defaultChecked }) => (
         id={id}
         className="absolute block w-6 h-6 bg-white dark:bg-gray-600 rounded-full border-4 appearance-none cursor-pointer checked:right-0 checked:border-blue-500 dark:checked:border-blue-400 transition-all duration-200"
         defaultChecked={defaultChecked}
+        onChange={onChange}
       />
       <label
         htmlFor={id}
