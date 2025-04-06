@@ -74,8 +74,16 @@ const Redefine: React.FC = () => {
       console.log("Using saved dark mode for initial state:", parsedMode);
       return parsedMode;
     }
-    console.log("No saved preference found, using default: false");
-    return false;
+
+    // Check system preference if no saved preference exists
+    const prefersDarkMode = window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    ).matches;
+    console.log(
+      "No saved preference found, using system preference:",
+      prefersDarkMode
+    );
+    return prefersDarkMode;
   });
 
   const [activeTab, setActiveTab] = useState<TabType>(() => {
