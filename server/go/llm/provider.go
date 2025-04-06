@@ -2,7 +2,6 @@ package llm
 
 import (
 	"fmt"
-	"os"
 	"redefine/server/models"
 	"strings"
 )
@@ -43,31 +42,4 @@ func GetProvider(model *models.LLMModel) (Provider, error) {
 
 	// Create provider instance
 	return factory(model)
-}
-
-// SetAPIKey sets environment variables for API keys based on provider
-func SetAPIKey(model *models.LLMModel) {
-	provider := ""
-	if strings.Contains(model.ID, "/") {
-		provider = strings.Split(model.ID, "/")[0]
-	} else {
-		provider = model.ID
-	}
-
-	provider = strings.ToUpper(provider)
-
-	// Set API key environment variable
-	if model.APIKey != "" {
-		SetEnv(fmt.Sprintf("%s_API_KEY", provider), model.APIKey)
-	}
-
-	// Set API endpoint environment variable if provided
-	if model.APIEndpoint != "" {
-		SetEnv(fmt.Sprintf("%s_API_BASE", provider), model.APIEndpoint)
-	}
-}
-
-// SetEnv sets an environment variable - extracted for easier testing
-var SetEnv = func(key, value string) {
-	os.Setenv(key, value)
 }

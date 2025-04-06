@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"redefine/server/llm"
 	"redefine/server/models"
@@ -51,9 +51,6 @@ type AnthropicProvider struct {
 
 // NewAnthropicProvider creates a new Anthropic provider
 func NewAnthropicProvider(model *models.LLMModel) (llm.Provider, error) {
-	// Set API keys in environment
-	llm.SetAPIKey(model)
-
 	// Extract model name from model ID
 	modelName := strings.TrimPrefix(model.ID, "anthropic/")
 
@@ -84,7 +81,7 @@ func (p *AnthropicProvider) Call(prompt string) (string, error) {
 			{Role: "user", Content: prompt},
 		},
 		Temperature: 0.1,
-		MaxTokens:   4096, // Maximum number of tokens to generate in the response (required by Anthropic API)
+		MaxTokens:   2048,
 	}
 
 	// Convert to JSON
@@ -113,7 +110,7 @@ func (p *AnthropicProvider) Call(prompt string) (string, error) {
 	defer resp.Body.Close()
 
 	// Read response
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}

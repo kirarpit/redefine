@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"redefine/server/llm"
 	"redefine/server/models"
@@ -43,9 +43,6 @@ type OpenAIProvider struct {
 
 // NewOpenAIProvider creates a new OpenAI provider
 func NewOpenAIProvider(model *models.LLMModel) (llm.Provider, error) {
-	// Set API keys in environment
-	llm.SetAPIKey(model)
-
 	// Extract model name from model ID
 	modelName := strings.TrimPrefix(model.ID, "openai/")
 
@@ -103,7 +100,7 @@ func (p *OpenAIProvider) Call(prompt string) (string, error) {
 	defer resp.Body.Close()
 
 	// Read response
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
