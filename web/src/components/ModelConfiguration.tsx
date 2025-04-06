@@ -3,6 +3,9 @@ import { LLMModel } from "../types";
 import { Card, Button } from "./UIComponents";
 import { API_BASE_URL } from "../config";
 
+// Constants
+export const RECOMMENDED_MODEL_ID = "gemini/gemini-2.0-flash";
+
 // API service functions for model management
 export const fetchModels = async (): Promise<LLMModel[]> => {
   try {
@@ -196,6 +199,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({
   const [newModelApiKey, setNewModelApiKey] = useState("");
   const [newModelApiEndpoint, setNewModelApiEndpoint] = useState("");
   const [testingModel, setTestingModel] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [testResult, setTestResult] = useState<{
     success?: boolean;
     message?: string;
@@ -204,9 +208,8 @@ export const AddModelForm: FC<AddModelFormProps> = ({
   const [showRecommendation, setShowRecommendation] = useState(true);
 
   // Check if recommended model is already added
-  const recommendedModelId = "gemini/gemini-2.0-flash-lite";
   const isRecommendedModelAdded = models.some(
-    (model) => model.id === recommendedModelId
+    (model) => model.id === RECOMMENDED_MODEL_ID
   );
 
   // Modify the testApiConnection function to make it reusable and return a promise
@@ -274,7 +277,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({
   const validateModelId = (id: string) => {
     if (!id.includes("/")) {
       setModelIdError(
-        "Model ID must include provider (e.g., gemini/gemini-2.0-flash-lite)"
+        `Model ID must include provider (e.g., ${RECOMMENDED_MODEL_ID})`
       );
       return false;
     }
@@ -289,43 +292,52 @@ export const AddModelForm: FC<AddModelFormProps> = ({
   };
 
   const handleAddModel = async () => {
-    if (!newModelId.trim() || !newModelApiKey.trim()) {
-      alert("Please fill in all required fields");
-      return;
-    }
+    // Return early if already submitting to prevent multiple submissions
+    if (submitting) return;
 
-    if (!validateModelId(newModelId)) {
-      return;
-    }
+    setSubmitting(true); // Set submitting state to true
 
-    // Always test the model before adding it
-    setTestingModel(true);
-    const testSuccess = await testApiConnection(true);
-
-    // Only proceed if the test is successful
-    if (!testSuccess) {
-      return; // Exit without adding the model
-    }
-
-    // Extract model name from the part after the forward slash if name is empty
-    let modelName = newModelName.trim();
-    if (!modelName) {
-      const parts = newModelId.split("/");
-      if (parts.length > 1) {
-        modelName = parts[1];
-      } else {
-        modelName = newModelId;
+    try {
+      if (!newModelId.trim() || !newModelApiKey.trim()) {
+        alert("Please fill in all required fields");
+        return;
       }
+
+      if (!validateModelId(newModelId)) {
+        return;
+      }
+
+      // Always test the model before adding it
+      setTestingModel(true);
+      const testSuccess = await testApiConnection(true);
+
+      // Only proceed if the test is successful
+      if (!testSuccess) {
+        return; // Exit without adding the model
+      }
+
+      // Extract model name from the part after the forward slash if name is empty
+      let modelName = newModelName.trim();
+      if (!modelName) {
+        const parts = newModelId.split("/");
+        if (parts.length > 1) {
+          modelName = parts[1];
+        } else {
+          modelName = newModelId;
+        }
+      }
+
+      const newModel: LLMModel = {
+        id: newModelId.trim(),
+        name: modelName,
+        apiKey: newModelApiKey.trim(),
+        apiEndpoint: newModelApiEndpoint.trim() || undefined,
+      };
+
+      onAdd(newModel);
+    } finally {
+      setSubmitting(false); // Reset submitting state when done
     }
-
-    const newModel: LLMModel = {
-      id: newModelId.trim(),
-      name: modelName,
-      apiKey: newModelApiKey.trim(),
-      apiEndpoint: newModelApiEndpoint.trim() || undefined,
-    };
-
-    onAdd(newModel);
   };
 
   return (
@@ -339,7 +351,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({
             type="text"
             value={newModelId}
             onChange={handleModelIdChange}
-            placeholder="e.g., gemini/gemini-2.0-flash-lite"
+            placeholder={`e.g., ${RECOMMENDED_MODEL_ID}`}
             autoComplete="off"
             data-form-type="other"
             className={`w-full bg-white dark:bg-gray-800 border ${
@@ -353,9 +365,6 @@ export const AddModelForm: FC<AddModelFormProps> = ({
               {modelIdError}
             </p>
           )}
-          {/* <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Must include provider name (e.g., gemini/gemini-2.0-flash-lite)
-          </p> */}
         </div>
 
         {/* Recommended Model Banner - conditionally rendered */}
@@ -404,15 +413,15 @@ export const AddModelForm: FC<AddModelFormProps> = ({
                 <p className="text-xs mt-1 text-blue-700 dark:text-blue-400">
                   We recommend{" "}
                   <span className="font-mono font-medium">
-                    gemini/gemini-2.0-flash-lite
+                    {RECOMMENDED_MODEL_ID}
                   </span>{" "}
                   - this model provides a good balance of speed and quality.
                 </p>
                 <div className="mt-2 flex items-center">
                   <button
                     onClick={() => {
-                      setNewModelId("gemini/gemini-2.0-flash-lite");
-                      validateModelId("gemini/gemini-2.0-flash-lite");
+                      setNewModelId(RECOMMENDED_MODEL_ID);
+                      validateModelId(RECOMMENDED_MODEL_ID);
                     }}
                     className="text-xs bg-blue-100 dark:bg-blue-800 hover:bg-blue-200 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-300 font-medium py-1 px-2 rounded-md mr-2"
                   >
@@ -576,14 +585,20 @@ export const AddModelForm: FC<AddModelFormProps> = ({
         </div>
 
         <div className="flex justify-end space-x-2 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <Button onClick={onCancel} variant="secondary">
+          <Button
+            onClick={onCancel}
+            variant="secondary"
+            disabled={submitting || testingModel}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleAddModel}
-            disabled={!newModelId || !newModelApiKey}
+            disabled={
+              !newModelId || !newModelApiKey || submitting || testingModel
+            }
           >
-            Add Model
+            {submitting ? "Adding..." : "Add Model"}
           </Button>
         </div>
       </div>
