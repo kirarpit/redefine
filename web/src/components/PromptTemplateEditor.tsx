@@ -404,10 +404,6 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
                 placeholder="Enter your prompt template here. Use {query} as a placeholder for the search term."
                 style={{
                   lineHeight: "1.5rem",
-                  backgroundImage:
-                    "linear-gradient(transparent 99%, rgba(229, 231, 235, 0.3) 1%)",
-                  backgroundSize: "100% 1.5rem",
-                  backgroundAttachment: "local",
                 }}
               />
             </div>
