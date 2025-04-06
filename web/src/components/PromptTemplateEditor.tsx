@@ -178,6 +178,51 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
     };
   };
 
+  // Components for Reset UI
+  const ResetButton = ({ mobile = false }) => (
+    <button
+      onClick={handleResetClick}
+      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700/30 flex items-center"
+      title="Reset to default template"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-3.5 w-3.5 mr-1"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+        />
+      </svg>
+      <span>Reset</span>
+    </button>
+  );
+
+  const ResetConfirmation = () => (
+    <div className="flex items-center space-x-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md px-2 py-1.5">
+      <span className="text-xs text-yellow-600 dark:text-yellow-300 font-medium">
+        Reset?
+      </span>
+      <button
+        onClick={handleConfirmReset}
+        className="text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+      >
+        Yes
+      </button>
+      <button
+        onClick={handleCancelReset}
+        className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+      >
+        No
+      </button>
+    </div>
+  );
+
   return (
     <>
       {/* Normal view */}
@@ -217,33 +262,7 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
                   Error: {saveError}
                 </span>
               )}
-              {!showResetConfirmation ? (
-                <button
-                  onClick={handleResetClick}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700/30"
-                  title="Reset to default template"
-                >
-                  Reset to Default
-                </button>
-              ) : (
-                <div className="flex items-center space-x-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md px-3 py-1.5">
-                  <span className="text-xs text-yellow-600 dark:text-yellow-300 font-medium">
-                    Reset?
-                  </span>
-                  <button
-                    onClick={handleConfirmReset}
-                    className="text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 ml-1 transition-colors"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={handleCancelReset}
-                    className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    No
-                  </button>
-                </div>
-              )}
+              {!showResetConfirmation ? <ResetButton /> : <ResetConfirmation />}
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
@@ -298,9 +317,6 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Prompt Template
                 </label>
-                <span className="ml-2 text-xs text-gray-500">
-                  ({lineCount} lines)
-                </span>
               </div>
               <div className="flex items-center space-x-1 sm:space-x-2">
                 {hasUnsavedChanges && (
@@ -336,46 +352,9 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
                 )}
                 <div className="flex items-center space-x-2">
                   {!showResetConfirmation ? (
-                    <button
-                      onClick={handleResetClick}
-                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700/30 flex items-center"
-                      title="Reset to default template"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3.5 w-3.5 mr-1"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <span className="hidden sm:inline">Reset to Default</span>
-                      <span className="sm:hidden">Reset</span>
-                    </button>
+                    <ResetButton mobile={true} />
                   ) : (
-                    <div className="flex items-center space-x-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-md px-3 py-1.5">
-                      <span className="text-xs text-yellow-600 dark:text-yellow-300 font-medium">
-                        Reset?
-                      </span>
-                      <button
-                        onClick={handleConfirmReset}
-                        className="text-xs font-semibold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 ml-1 transition-colors"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={handleCancelReset}
-                        className="text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                      >
-                        No
-                      </button>
-                    </div>
+                    <ResetConfirmation />
                   )}
                   <button
                     onClick={() => setIsExpanded(false)}
