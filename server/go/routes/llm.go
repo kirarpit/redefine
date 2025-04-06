@@ -96,6 +96,13 @@ func removeModel(c *gin.Context) {
 		return
 	}
 
+	// Remove the leading slash if it exists
+	if len(decodedModelID) > 0 && decodedModelID[0] == '/' {
+		decodedModelID = decodedModelID[1:]
+	}
+
+	log.Printf("Deleting LLM model with ID: %s", decodedModelID)
+
 	// Delete from database
 	success, err := db.DeleteLLMModel(decodedModelID)
 	if err != nil {
