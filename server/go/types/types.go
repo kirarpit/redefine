@@ -4,6 +4,7 @@ package types
 type FlashcardItem struct {
 	Front string `json:"front" yaml:"front"`
 	Back  string `json:"back" yaml:"back"`
+	Type  string `json:"type" yaml:"type"` // Can be "cloze", "basic", or "reversed"
 }
 
 // ExplanationEntry represents a complete explanation response

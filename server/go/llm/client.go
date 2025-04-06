@@ -68,6 +68,7 @@ func (c *Client) CallAndParseYAML(prompt string) (*types.ExplanationEntry, error
 	if err := yaml.Unmarshal([]byte(yamlContent), &entry); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
+	log.Printf("Entry: %+v", entry)
 
 	// Ensure fields are initialized
 	if entry.RelatedItems == nil {

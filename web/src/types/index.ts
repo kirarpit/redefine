@@ -5,10 +5,11 @@ export type ExplanationEntry = {
   pronunciation: string;
   related_items?: string[];
   quotes?: string[];
-  flashcards?: { front: string; back: string }[];
+  flashcards?: {type: string; front: string; back: string }[];
 };
 
 export type Flashcard = {
+  type: string;
   front: string;
   back: string;
   query: string;

@@ -230,11 +230,13 @@ export const useFlashcardManager = (
 
     const updatedWordData = { ...wordData };
     const editedCard = state.editedFlashcard;
+    const isClozeType = wordData.flashcards[index].type === "cloze";
 
     if (updatedWordData.flashcards && updatedWordData.flashcards[index]) {
       updatedWordData.flashcards[index] = {
+        type: wordData.flashcards[index].type,
         front: editedCard.front,
-        back: editedCard.back,
+        back: isClozeType ? "" : editedCard.back,
       };
     }
 
@@ -251,7 +253,7 @@ export const useFlashcardManager = (
             ? {
                 ...exported,
                 front: editedCard.front,
-                back: editedCard.back,
+                back: isClozeType ? "" : editedCard.back,
               }
             : exported
         );
@@ -452,19 +454,21 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
                     className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-800 dark:text-gray-200"
                   />
                 </div>
-                <div className="mb-3">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Back
-                  </label>
-                  <input
-                    type="text"
-                    value={flashcardState.editedFlashcard?.back || ""}
-                    onChange={(e) =>
-                      updateEditedFlashcard("back", e.target.value)
-                    }
-                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-800 dark:text-gray-200"
-                  />
-                </div>
+                {flashcard.type !== "cloze" && (
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Back
+                    </label>
+                    <input
+                      type="text"
+                      value={flashcardState.editedFlashcard?.back || ""}
+                      onChange={(e) =>
+                        updateEditedFlashcard("back", e.target.value)
+                      }
+                      className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-800 dark:text-gray-200"
+                    />
+                  </div>
+                )}
                 <div className="flex justify-end space-x-2">
                   <button
                     onClick={cancelFlashcardEdit}
@@ -489,9 +493,11 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
                   <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
                     {flashcard.front}
                   </div>
-                  <div className="text-gray-600 dark:text-gray-400 text-sm">
-                    {flashcard.back}
-                  </div>
+                  {flashcard.type !== "cloze" && (
+                    <div className="text-gray-600 dark:text-gray-400 text-sm">
+                      {flashcard.back}
+                    </div>
+                  )}
                 </div>
                 <div className="flex space-x-2 ml-3">
                   <button
