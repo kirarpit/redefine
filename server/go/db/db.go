@@ -7,7 +7,7 @@ import (
 	"redefine/server/config"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 var (
@@ -23,7 +23,7 @@ func Initialize() error {
 		log.Printf("Opening SQLite database at %s", dbPath)
 
 		// Open SQLite database
-		database, err := sql.Open("sqlite3", dbPath)
+		database, err := sql.Open("sqlite", dbPath)
 		if err != nil {
 			initErr = fmt.Errorf("failed to open database: %w", err)
 			return
@@ -101,4 +101,4 @@ func Close() error {
 		return db.Close()
 	}
 	return nil
-} 
+}

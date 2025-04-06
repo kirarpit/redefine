@@ -1,23 +1,24 @@
-FROM node:19-alpine AS frontend-build
-
-# Set working directory for frontend
+# ----------- Frontend Build Stage -----------
+FROM node:20-alpine AS frontend-build
 WORKDIR /app/web
 
-# Copy frontend package files and install dependencies
-COPY web/package*.json ./
-RUN npm install
+# Use pnpm for better memory efficiency
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN npm install -g pnpm && \
+    pnpm install --frozen-lockfile
 
 # Copy frontend source files
 COPY web/ ./
 
-# Build frontend
-RUN npm run build
+# Build frontend with production optimization
+RUN pnpm run build
 
-# Use Go image for backend build
-FROM golang:1.21-alpine AS backend-build
-
-# Set working directory for backend
+# ----------- Backend Build Stage (pure Go, no CGO) -----------
+FROM golang:1.23-alpine AS backend-build
 WORKDIR /app/server
+
+# Disable CGO for a smaller, more memory-efficient binary
+ENV CGO_ENABLED=0
 
 # Copy go.mod and go.sum
 COPY server/go/go.mod ./
@@ -28,18 +29,18 @@ RUN go mod download
 # Copy the source code
 COPY server/go/ ./
 
-# Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -o redefine-server
+# Build the application with optimizations for size
+RUN GOOS=linux go build -ldflags="-s -w" -o redefine-server
 
-# Final stage
+# ----------- Final Monolithic Image -----------
 FROM alpine:latest
-
-# Install required dependencies for SQLite
-RUN apk --no-cache add ca-certificates libc6-compat
-
 WORKDIR /app
 
-# Copy the binary and prompt template from backend build
+# Install only essential dependencies
+RUN apk --no-cache add ca-certificates tzdata
+ENV TZ="UTC"
+
+# Copy the binary from backend build
 COPY --from=backend-build /app/server/redefine-server .
 COPY --from=backend-build /app/server/prompts ./prompts
 
