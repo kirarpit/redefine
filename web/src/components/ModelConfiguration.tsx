@@ -89,10 +89,10 @@ export const testModel = async (
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          modelId,
-          prompt,
-          apiKey,
-          apiEndpoint,
+          modelId: modelId.trim(),
+          prompt: prompt.trim(),
+          apiKey: apiKey?.trim(),
+          apiEndpoint: apiEndpoint?.trim(),
         }),
       }
     );
@@ -216,15 +216,15 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
 
     try {
       // Create temporary model ID for testing
-      const tempModelId = newModelId;
+      const tempModelId = newModelId.trim();
       const testPrompt = "hello world";
 
       // Make a real API call to test the model
       await testModel(
         tempModelId,
         testPrompt,
-        newModelApiKey,
-        newModelApiEndpoint,
+        newModelApiKey.trim(),
+        newModelApiEndpoint.trim(),
         true
       );
 
@@ -307,9 +307,9 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
     }
 
     const newModel: LLMModel = {
-      id: newModelId,
+      id: newModelId.trim(),
       name: modelName,
-      apiKey: newModelApiKey,
+      apiKey: newModelApiKey.trim(),
       apiEndpoint: newModelApiEndpoint.trim() || undefined,
     };
 

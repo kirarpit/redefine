@@ -410,10 +410,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     try {
       // Call API to add model
       await addModel({
-        name: newModel.name,
-        modelId: newModel.id,
-        apiKey: newModel.apiKey,
-        apiEndpoint: newModel.apiEndpoint,
+        name: newModel.name.trim(),
+        modelId: newModel.id.trim(),
+        apiKey: newModel.apiKey.trim(),
+        apiEndpoint: newModel.apiEndpoint?.trim(),
       });
 
       // Update local state after successful API call

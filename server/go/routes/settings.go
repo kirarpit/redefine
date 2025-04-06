@@ -21,6 +21,17 @@ type PromptData struct {
 	} `yaml:"prompt"`
 }
 
+// setupSettingsRoutes sets up routes for application settings
+func setupSettingsRoutes(api *gin.RouterGroup) {
+	settingsGroup := api.Group("/settings")
+
+	// Get prompt template
+	settingsGroup.GET("/prompt-template", getPromptTemplate)
+
+	// Save prompt template
+	settingsGroup.POST("/prompt-template", savePromptTemplate)
+}
+
 // LoadPromptTemplateFromFile loads the default prompt template from the YAML file
 func LoadPromptTemplateFromFile() (string, error) {
 	rootDir, err := os.Getwd()
@@ -42,17 +53,6 @@ func LoadPromptTemplateFromFile() (string, error) {
 	}
 
 	return promptData.Prompt.Template, nil
-}
-
-// setupSettingsRoutes sets up routes for application settings
-func setupSettingsRoutes(api *gin.RouterGroup) {
-	settingsGroup := api.Group("/settings")
-
-	// Get prompt template
-	settingsGroup.GET("/prompt-template", getPromptTemplate)
-
-	// Save prompt template
-	settingsGroup.POST("/prompt-template", savePromptTemplate)
 }
 
 // getPromptTemplate handles the GET request to retrieve the prompt template

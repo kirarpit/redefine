@@ -23,13 +23,23 @@ type anthropicRequest struct {
 	Model       string             `json:"model"`
 	Messages    []anthropicMessage `json:"messages"`
 	Temperature float64            `json:"temperature"`
+	MaxTokens   int                `json:"max_tokens"`
 }
 
 // AnthropicResponse represents a response from the Anthropic API
 type anthropicResponse struct {
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	Role    string `json:"role"`
 	Content []struct {
+		Type string `json:"type"`
 		Text string `json:"text"`
 	} `json:"content"`
+	StopReason string `json:"stop_reason"`
+	Usage      struct {
+		InputTokens  int `json:"input_tokens"`
+		OutputTokens int `json:"output_tokens"`
+	} `json:"usage"`
 }
 
 // AnthropicProvider implements the Provider interface for Anthropic models
@@ -74,6 +84,7 @@ func (p *AnthropicProvider) Call(prompt string) (string, error) {
 			{Role: "user", Content: prompt},
 		},
 		Temperature: 0.1,
+		MaxTokens:   4096, // Maximum number of tokens to generate in the response (required by Anthropic API)
 	}
 
 	// Convert to JSON
@@ -90,7 +101,7 @@ func (p *AnthropicProvider) Call(prompt string) (string, error) {
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-API-Key", p.model.APIKey)
+	req.Header.Set("x-api-key", p.model.APIKey)
 	req.Header.Set("Anthropic-Version", "2023-06-01")
 
 	// Send request
@@ -123,7 +134,19 @@ func (p *AnthropicProvider) Call(prompt string) (string, error) {
 		return "", fmt.Errorf("API response contains no content")
 	}
 
-	return response.Content[0].Text, nil
+	// Extract text content from response
+	var textContent string
+	for _, content := range response.Content {
+		if content.Type == "text" {
+			textContent += content.Text
+		}
+	}
+
+	if textContent == "" {
+		return "", fmt.Errorf("API response contains no text content")
+	}
+
+	return textContent, nil
 }
 
 // Register the provider

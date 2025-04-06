@@ -137,8 +137,8 @@ func testModel(c *gin.Context) {
 	skipLookup, _ := strconv.ParseBool(c.Query("skipLookup"))
 
 	var model *models.LLMModel
+	var response string
 	var err error
-
 	if skipLookup {
 		// Use provided model details
 		model = &models.LLMModel{
@@ -167,8 +167,9 @@ func testModel(c *gin.Context) {
 		}
 	}
 
+	response, err = llm.TestPrompt(model, request.Prompt, !skipLookup)
+
 	// Test the model
-	response, err := llm.TestPrompt(model, request.Prompt)
 	if err != nil {
 		log.Printf("Error testing LLM model: %v", err)
 		c.JSON(500, gin.H{"error": err.Error()})
