@@ -13,36 +13,49 @@ COPY web/ ./
 # Build frontend
 RUN npm run build
 
-# Use Python image for the final container
-FROM python:3.9-slim
+# Use Go image for backend build
+FROM golang:1.21-alpine AS backend-build
 
-# Set working directory
+# Set working directory for backend
+WORKDIR /app/server
+
+# Copy go.mod and go.sum
+COPY server/go/go.mod ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the source code
+COPY server/go/ ./
+
+# Build the application
+RUN CGO_ENABLED=1 GOOS=linux go build -o redefine-server
+
+# Final stage
+FROM alpine:latest
+
+# Install required dependencies for SQLite
+RUN apk --no-cache add ca-certificates libc6-compat
+
 WORKDIR /app
 
-# Install dependencies needed for psycopg2 and other packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Copy the binary and prompt template from backend build
+COPY --from=backend-build /app/server/redefine-server .
+COPY --from=backend-build /app/server/prompts ./prompts
 
-# Copy Python requirements and install them
-COPY server/python/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy backend code
-COPY server/python/ ./
-
-# Copy the built frontend from the previous stage
+# Copy the built frontend from the frontend build stage
 COPY --from=frontend-build /app/web/build ./static
 
-# Set environment variables
-ENV FLASK_APP=serve.py
-ENV FLASK_ENV=production
-ENV STATIC_FOLDER=./static
-
-# Expose the port the app runs on
+# Expose port
 EXPOSE 5000
 
+# Set environment variables
+ENV GIN_MODE=release
+ENV PORT=5000
+ENV DB_PATH=/data/redefine.db
+
+# Create a volume for persistent data
+VOLUME ["/data"]
+
 # Command to run the application
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "serve:app"] 
+CMD ["./redefine-server"] 
