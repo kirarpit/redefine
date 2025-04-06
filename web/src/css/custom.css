@@ -14,3 +14,15 @@ body {
 .logo-dark-mode {
   filter: invert(1) brightness(1.5);
 }
+
+/* Prevent layout shifts when scrollbars appear */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Ensure consistent scrollbar behavior in all containers */
+.settings-container,
+.content-container {
+  scrollbar-gutter: stable;
+  overflow-y: auto;
+}

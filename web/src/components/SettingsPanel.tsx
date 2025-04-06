@@ -1,4 +1,4 @@
-import { useState, useEffect, FC, useRef } from "react";
+import { useState, useEffect, FC } from "react";
 import { LLMModel } from "../types";
 import {
   fetchModels,
@@ -463,7 +463,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 settings-container">
       <Section
         title="Model Configuration"
         description={

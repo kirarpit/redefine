@@ -270,7 +270,7 @@ const Redefine: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <div className="w-full max-w-4xl mx-auto flex-1 p-4 md:py-12 md:px-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 content-container">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center">
               <img
