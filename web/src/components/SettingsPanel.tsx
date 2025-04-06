@@ -583,6 +583,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
           <AddModelForm
             onAdd={handleAddModel}
             onCancel={() => setIsAddingModel(false)}
+            models={models || []}
           />
         )}
       </Section>

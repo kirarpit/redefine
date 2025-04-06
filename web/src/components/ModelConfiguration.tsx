@@ -183,9 +183,14 @@ export const ModelList: FC<ModelListProps> = ({
 type AddModelFormProps = {
   onAdd: (model: LLMModel) => void;
   onCancel: () => void;
+  models?: LLMModel[];
 };
 
-export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
+export const AddModelForm: FC<AddModelFormProps> = ({
+  onAdd,
+  onCancel,
+  models = [],
+}) => {
   const [newModelName, setNewModelName] = useState("");
   const [newModelId, setNewModelId] = useState("");
   const [newModelApiKey, setNewModelApiKey] = useState("");
@@ -196,6 +201,13 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
     message?: string;
   } | null>(null);
   const [modelIdError, setModelIdError] = useState("");
+  const [showRecommendation, setShowRecommendation] = useState(true);
+
+  // Check if recommended model is already added
+  const recommendedModelId = "gemini/gemini-2.0-flash-lite";
+  const isRecommendedModelAdded = models.some(
+    (model) => model.id === recommendedModelId
+  );
 
   // Modify the testApiConnection function to make it reusable and return a promise
   const testApiConnection = async (showUI = true): Promise<boolean> => {
@@ -262,7 +274,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
   const validateModelId = (id: string) => {
     if (!id.includes("/")) {
       setModelIdError(
-        "Model ID must include provider (e.g., anthropic/claude-3-sonnet-20240229)"
+        "Model ID must include provider (e.g., gemini/gemini-2.0-flash-lite)"
       );
       return false;
     }
@@ -327,7 +339,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
             type="text"
             value={newModelId}
             onChange={handleModelIdChange}
-            placeholder="e.g., anthropic/claude-3-opus-20240229"
+            placeholder="e.g., gemini/gemini-2.0-flash-lite"
             autoComplete="off"
             data-form-type="other"
             className={`w-full bg-white dark:bg-gray-800 border ${
@@ -341,11 +353,98 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
               {modelIdError}
             </p>
           )}
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Must include provider name (e.g.,
-            anthropic/claude-3-sonnet-20240229)
-          </p>
+          {/* <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Must include provider name (e.g., gemini/gemini-2.0-flash-lite)
+          </p> */}
         </div>
+
+        {/* Recommended Model Banner - conditionally rendered */}
+        {showRecommendation && !isRecommendedModelAdded && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 relative">
+            {/* Close button */}
+            <button
+              onClick={() => setShowRecommendation(false)}
+              className="absolute top-2 right-2 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              aria-label="Close recommendation"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <div className="flex items-start">
+              <svg
+                className="w-5 h-5 text-blue-500 dark:text-blue-400 mr-2 flex-shrink-0 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div>
+                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                  Recommended Model
+                </h4>
+                <p className="text-xs mt-1 text-blue-700 dark:text-blue-400">
+                  We recommend{" "}
+                  <span className="font-mono font-medium">
+                    gemini/gemini-2.0-flash-lite
+                  </span>{" "}
+                  - this model provides a good balance of speed and quality.
+                </p>
+                <div className="mt-2 flex items-center">
+                  <button
+                    onClick={() => {
+                      setNewModelId("gemini/gemini-2.0-flash-lite");
+                      validateModelId("gemini/gemini-2.0-flash-lite");
+                    }}
+                    className="text-xs bg-blue-100 dark:bg-blue-800 hover:bg-blue-200 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-300 font-medium py-1 px-2 rounded-md mr-2"
+                  >
+                    Use Recommended Model
+                  </button>
+                  <a
+                    href="https://aistudio.google.com/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+                  >
+                    Get free API key
+                    <svg
+                      className="w-3 h-3 ml-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -466,16 +565,6 @@ export const AddModelForm: FC<AddModelFormProps> = ({ onAdd, onCancel }) => {
                 </p>
                 {!testResult.success && (
                   <ul className="text-xs text-red-700 dark:text-red-400 mt-1 ml-4 list-disc">
-                    <li>
-                      Check your provider is supported:{" "}
-                      <a
-                        href="https://docs.litellm.ai/docs/providers"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        https://docs.litellm.ai/docs/providers
-                      </a>
-                    </li>
                     <li>Check that the model ID is valid for your provider</li>
                     <li>Verify your API key is correct and hasn't expired</li>
                     <li>Ensure your API endpoint is correct (if provided)</li>
