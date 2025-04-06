@@ -2,19 +2,19 @@ package types
 
 // FlashcardItem represents an individual flashcard within an explanation
 type FlashcardItem struct {
-	Front string `json:"front"`
-	Back  string `json:"back"`
+	Front string `json:"front" yaml:"front"`
+	Back  string `json:"back" yaml:"back"`
 }
 
 // ExplanationEntry represents a complete explanation response
 type ExplanationEntry struct {
-	Query         string          `json:"query"`
-	Type          string          `json:"type"`
-	Explanation   string          `json:"explanation"`
-	Pronunciation string          `json:"pronunciation"`
-	RelatedItems  []string        `json:"related_items,omitempty"`
-	Quotes        []string        `json:"quotes,omitempty"`
-	Flashcards    []FlashcardItem `json:"flashcards,omitempty"`
+	Query         string          `json:"query" yaml:"query"`
+	Type          string          `json:"type" yaml:"type"`
+	Explanation   string          `json:"explanation" yaml:"explanation"`
+	Pronunciation string          `json:"pronunciation" yaml:"pronunciation"`
+	RelatedItems  []string        `json:"related_items,omitempty" yaml:"related_items,omitempty"`
+	Quotes        []string        `json:"quotes,omitempty" yaml:"quotes,omitempty"`
+	Flashcards    []FlashcardItem `json:"flashcards,omitempty" yaml:"flashcards,omitempty"`
 }
 
 // Flashcard represents a saved flashcard in the database
