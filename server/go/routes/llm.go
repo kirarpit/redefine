@@ -6,7 +6,7 @@ import (
 	"redefine/server/db"
 	"redefine/server/llm"
 	_ "redefine/server/llm/providers" // Import for side effects (registering providers)
-	"redefine/server/models"
+	"redefine/server/types"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -62,7 +62,7 @@ func createModel(c *gin.Context) {
 	}
 
 	// Create model
-	model := models.LLMModel{
+	model := types.LLMModel{
 		ID:          request.ModelId,
 		Name:        request.Name,
 		APIKey:      request.ApiKey,
@@ -143,12 +143,12 @@ func testModel(c *gin.Context) {
 	// Check if we should skip looking up the model in the database
 	skipLookup, _ := strconv.ParseBool(c.Query("skipLookup"))
 
-	var model *models.LLMModel
+	var model *types.LLMModel
 	var response string
 	var err error
 	if skipLookup {
 		// Use provided model details
-		model = &models.LLMModel{
+		model = &types.LLMModel{
 			ID:          request.ModelId,
 			Name:        request.Name,
 			APIKey:      request.ApiKey,

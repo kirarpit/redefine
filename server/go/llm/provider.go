@@ -2,7 +2,7 @@ package llm
 
 import (
 	"fmt"
-	"redefine/server/models"
+	"redefine/server/types"
 	"strings"
 )
 
@@ -10,7 +10,7 @@ import (
 type Provider interface {
 	// Call sends a prompt to the LLM and returns the response
 	// Simplified to only take the model object and prompt
-	Call(prompt string, model *models.LLMModel) (string, error)
+	Call(prompt string, model *types.LLMModel) (string, error)
 
 	// Name returns the name of the provider
 	Name() string
@@ -28,7 +28,7 @@ func RegisterProvider(prefix string, factory ProviderFactory) {
 }
 
 // GetProvider returns a provider for the given model
-func GetProvider(model *models.LLMModel) (Provider, error) {
+func GetProvider(model *types.LLMModel) (Provider, error) {
 	// Extract provider prefix from model ID
 	prefix := model.ID
 	if strings.Contains(model.ID, "/") {

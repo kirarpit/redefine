@@ -1,11 +1,11 @@
 package db
 
 import (
-	"redefine/server/models"
+	"redefine/server/types"
 )
 
 // GetFlashcards retrieves all flashcards from the database
-func GetFlashcards() ([]models.Flashcard, error) {
+func GetFlashcards() ([]types.Flashcard, error) {
 	db := GetDB()
 	rows, err := db.Query(`
 		SELECT query, front, back, exported_at 
@@ -16,9 +16,9 @@ func GetFlashcards() ([]models.Flashcard, error) {
 	}
 	defer rows.Close()
 
-	var flashcards []models.Flashcard
+	var flashcards []types.Flashcard
 	for rows.Next() {
-		var f models.Flashcard
+		var f types.Flashcard
 		if err := rows.Scan(&f.Query, &f.Front, &f.Back, &f.ExportedAt); err != nil {
 			return nil, err
 		}
@@ -33,7 +33,7 @@ func GetFlashcards() ([]models.Flashcard, error) {
 }
 
 // AddFlashcard adds a new flashcard to the database
-func AddFlashcard(flashcard models.Flashcard) (*models.Flashcard, error) {
+func AddFlashcard(flashcard types.Flashcard) (*types.Flashcard, error) {
 	db := GetDB()
 	result, err := db.Exec(`
 		INSERT INTO flashcards (query, front, back, exported_at)
@@ -72,4 +72,4 @@ func DeleteFlashcard(query, front, back string) (bool, error) {
 	}
 
 	return rowsAffected > 0, nil
-} 
+}

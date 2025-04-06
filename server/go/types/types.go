@@ -1,19 +1,19 @@
-package models
+package types
 
 // FlashcardItem represents an individual flashcard within an explanation
 type FlashcardItem struct {
-	Front string   `json:"front"`
-	Back  string   `json:"back"`
+	Front string `json:"front"`
+	Back  string `json:"back"`
 }
 
 // ExplanationEntry represents a complete explanation response
 type ExplanationEntry struct {
-	Query         string         `json:"query"`
-	Type          string         `json:"type"`
-	Explanation   string         `json:"explanation"`
-	Pronunciation string         `json:"pronunciation"`
-	RelatedItems  []string       `json:"related_items,omitempty"`
-	Quotes        []string       `json:"quotes,omitempty"`
+	Query         string          `json:"query"`
+	Type          string          `json:"type"`
+	Explanation   string          `json:"explanation"`
+	Pronunciation string          `json:"pronunciation"`
+	RelatedItems  []string        `json:"related_items,omitempty"`
+	Quotes        []string        `json:"quotes,omitempty"`
 	Flashcards    []FlashcardItem `json:"flashcards,omitempty"`
 }
 
@@ -51,4 +51,4 @@ type SearchResponse struct {
 // ErrorResponse represents an API error response
 type ErrorResponse struct {
 	Error string `json:"error"`
-} 
+}

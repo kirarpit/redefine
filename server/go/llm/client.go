@@ -3,23 +3,23 @@ package llm
 import (
 	"fmt"
 	"log"
-	"redefine/server/models"
+	"redefine/server/types"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
 // Cache for LLM responses
-var responseCache = make(map[string]models.ExplanationEntry)
+var responseCache = make(map[string]types.ExplanationEntry)
 
 // Client provides a unified interface for interacting with LLM providers
 type Client struct {
-	model    *models.LLMModel
+	model    *types.LLMModel
 	provider Provider
 }
 
 // NewClient creates a new LLM client for the given model
-func NewClient(model *models.LLMModel) (*Client, error) {
+func NewClient(model *types.LLMModel) (*Client, error) {
 	// Get provider for the model
 	provider, err := GetProvider(model)
 	if err != nil {
@@ -51,7 +51,7 @@ func extractYAML(content string) string {
 }
 
 // CallAndParseYAML calls the LLM and parses the YAML response
-func (c *Client) CallAndParseYAML(prompt string) (*models.ExplanationEntry, error) {
+func (c *Client) CallAndParseYAML(prompt string) (*types.ExplanationEntry, error) {
 	content, err := c.Call(prompt)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (c *Client) CallAndParseYAML(prompt string) (*models.ExplanationEntry, erro
 	}
 
 	// Parse YAML
-	var entry models.ExplanationEntry
+	var entry types.ExplanationEntry
 	if err := yaml.Unmarshal([]byte(yamlContent), &entry); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
@@ -77,17 +77,14 @@ func (c *Client) CallAndParseYAML(prompt string) (*models.ExplanationEntry, erro
 		entry.Quotes = []string{}
 	}
 	if entry.Flashcards == nil {
-		entry.Flashcards = []models.FlashcardItem{}
+		entry.Flashcards = []types.FlashcardItem{}
 	}
 
 	return &entry, nil
 }
 
-// PromptSaver is a function type for saving prompt templates
-type PromptSaver func(template string) error
-
 // GenerateExplanation generates an explanation for the given query
-func GenerateExplanation(query string, modelID string, getModel ModelGetter, getPrompt PromptGetter) (*models.ExplanationEntry, error) {
+func GenerateExplanation(query string, modelID string, getModel ModelGetter, getPrompt PromptGetter) (*types.ExplanationEntry, error) {
 	// Get model from database
 	model, err := getModel(modelID)
 	if err != nil {
@@ -132,13 +129,13 @@ func GenerateExplanation(query string, modelID string, getModel ModelGetter, get
 }
 
 // ModelGetter is a function type for retrieving LLM models
-type ModelGetter func(id string) (*models.LLMModel, error)
+type ModelGetter func(id string) (*types.LLMModel, error)
 
 // PromptGetter is a function type for retrieving prompt templates
 type PromptGetter func() (string, error)
 
 // TestPrompt tests a prompt template with the given model
-func TestPrompt(model *models.LLMModel, prompt string, processYAML bool) (string, error) {
+func TestPrompt(model *types.LLMModel, prompt string, processYAML bool) (string, error) {
 	client, err := NewClient(model)
 	if err != nil {
 		return "", fmt.Errorf("failed to create LLM client: %w", err)
@@ -159,7 +156,7 @@ func TestPrompt(model *models.LLMModel, prompt string, processYAML bool) (string
 		}
 
 		// Try to parse YAML to verify it's valid
-		var entry models.ExplanationEntry
+		var entry types.ExplanationEntry
 		if err := yaml.Unmarshal([]byte(yamlContent), &entry); err != nil {
 			return response, fmt.Errorf("YAML parsing error: %v\nYAML content: %s", err, yamlContent)
 		}

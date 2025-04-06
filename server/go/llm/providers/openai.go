@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 	"redefine/server/llm"
-	"redefine/server/models"
+	"redefine/server/types"
 	"strings"
 	"time"
 )
@@ -50,7 +50,7 @@ func (p *OpenAIProvider) Name() string {
 }
 
 // Call sends a prompt to the OpenAI API and returns the response
-func (p *OpenAIProvider) Call(prompt string, model *models.LLMModel) (string, error) {
+func (p *OpenAIProvider) Call(prompt string, model *types.LLMModel) (string, error) {
 	// Extract model name from model ID
 	modelName := model.ID
 	if strings.Contains(model.ID, "/") {

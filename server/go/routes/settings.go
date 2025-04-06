@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"redefine/server/config"
 	"redefine/server/db"
-	"redefine/server/models"
+	"redefine/server/types"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -83,26 +83,26 @@ func getPromptTemplate(c *gin.Context) {
 
 	if err != nil {
 		log.Printf("Error retrieving prompt template: %v", err)
-		c.JSON(500, models.ErrorResponse{Error: "Failed to retrieve prompt template"})
+		c.JSON(500, types.ErrorResponse{Error: "Failed to retrieve prompt template"})
 		return
 	}
 
-	c.JSON(200, models.PromptTemplate{Template: template})
+	c.JSON(200, types.PromptTemplate{Template: template})
 }
 
 // savePromptTemplate handles the POST request to save a prompt template
 func savePromptTemplate(c *gin.Context) {
-	var request models.PromptTemplate
+	var request types.PromptTemplate
 
 	if err := c.ShouldBindJSON(&request); err != nil || request.Template == "" {
-		c.JSON(400, models.ErrorResponse{Error: "Invalid or empty template"})
+		c.JSON(400, types.ErrorResponse{Error: "Invalid or empty template"})
 		return
 	}
 
 	// Save to database
 	if err := db.SavePromptTemplate(request.Template); err != nil {
 		log.Printf("Error saving prompt template: %v", err)
-		c.JSON(500, models.ErrorResponse{Error: "Failed to save prompt template"})
+		c.JSON(500, types.ErrorResponse{Error: "Failed to save prompt template"})
 		return
 	}
 

@@ -3,11 +3,11 @@ package db
 import (
 	"database/sql"
 	"redefine/server/crypto"
-	"redefine/server/models"
+	"redefine/server/types"
 )
 
 // GetLLMModels retrieves all LLM models from the database
-func GetLLMModels() ([]models.LLMModel, error) {
+func GetLLMModels() ([]types.LLMModel, error) {
 	db := GetDB()
 	rows, err := db.Query(`
 		SELECT id, name, api_key, api_endpoint 
@@ -18,9 +18,9 @@ func GetLLMModels() ([]models.LLMModel, error) {
 	}
 	defer rows.Close()
 
-	var llmModels []models.LLMModel
+	var llmModels []types.LLMModel
 	for rows.Next() {
-		var m models.LLMModel
+		var m types.LLMModel
 		var apiEndpoint sql.NullString
 		if err := rows.Scan(&m.ID, &m.Name, &m.APIKey, &apiEndpoint); err != nil {
 			return nil, err
@@ -49,9 +49,9 @@ func GetLLMModels() ([]models.LLMModel, error) {
 }
 
 // GetLLMModelByID retrieves a single LLM model by ID
-func GetLLMModelByID(id string) (*models.LLMModel, error) {
+func GetLLMModelByID(id string) (*types.LLMModel, error) {
 	db := GetDB()
-	var model models.LLMModel
+	var model types.LLMModel
 	var apiEndpoint sql.NullString
 
 	err := db.QueryRow(`
@@ -83,7 +83,7 @@ func GetLLMModelByID(id string) (*models.LLMModel, error) {
 }
 
 // AddLLMModel adds or updates an LLM model in the database
-func AddLLMModel(model models.LLMModel) (*models.LLMModel, error) {
+func AddLLMModel(model types.LLMModel) (*types.LLMModel, error) {
 	// Encrypt API key before storing
 	encryptedKey, err := crypto.EncryptAPIKey(model.APIKey)
 	if err != nil {
