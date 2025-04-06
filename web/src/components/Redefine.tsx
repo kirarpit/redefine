@@ -231,12 +231,13 @@ const Redefine: React.FC = () => {
       setWordData(data);
       streamExplanation(data.explanation);
 
+      console.log("searchQuery", searchQuery);
       setSearchHistory((prev) => {
         const filteredHistory = prev.filter(
-          (item) => item.query !== data.query
+          (item) => item.query !== searchQuery
         );
         return [
-          { query: data.query, timestamp: new Date().toISOString() },
+          { query: searchQuery, timestamp: new Date().toISOString() },
           ...filteredHistory,
         ].slice(0, 100);
       });
@@ -334,8 +335,6 @@ const Redefine: React.FC = () => {
               setStreamedText={setStreamedText}
               exportedFlashcards={exportedFlashcards}
               setExportedFlashcards={setExportedFlashcards}
-              searchHistory={searchHistory}
-              setSearchHistory={setSearchHistory}
               onNavigateToSettings={handleNavigateToSettings}
               handleSearch={handleSearch}
               isLoading={isLoading}

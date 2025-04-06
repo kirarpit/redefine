@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ChangeEvent } from "react";
-import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
+import { ExplanationEntry, Flashcard } from "../types";
 import { useFlashcardManager, FlashcardList } from "./Flashcard";
 import { dictionary } from "../data/dictionaryData";
 import { API_BASE_URL } from "../config";
@@ -79,8 +79,6 @@ type SearchBarProps = {
   setStreamedText: React.Dispatch<React.SetStateAction<string>>;
   exportedFlashcards: Flashcard[];
   setExportedFlashcards: React.Dispatch<React.SetStateAction<Flashcard[]>>;
-  searchHistory: SearchHistoryItem[];
-  setSearchHistory: React.Dispatch<React.SetStateAction<SearchHistoryItem[]>>;
   onNavigateToSettings?: () => void;
   handleSearch: (searchQuery: string) => Promise<void>;
   isLoading: boolean;
@@ -111,8 +109,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
   setStreamedText,
   exportedFlashcards,
   setExportedFlashcards,
-  searchHistory,
-  setSearchHistory,
   onNavigateToSettings,
   handleSearch,
   isLoading,
