@@ -96,6 +96,7 @@ type SearchBarProps = {
   >;
   showModelRequiredMessage: boolean;
   setShowModelRequiredMessage: React.Dispatch<React.SetStateAction<boolean>>;
+  activeTab?: string;
 };
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -116,10 +117,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
   setNotification,
   showModelRequiredMessage,
   setShowModelRequiredMessage,
+  activeTab,
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const searchBarRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isMouseActive, setIsMouseActive] = useState<boolean>(false);
 
   // Use the flashcard manager hook
@@ -129,6 +132,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
     exportedFlashcards,
     setExportedFlashcards
   );
+
+  // Focus the search input when component mounts or when tab changes to search
+  useEffect(() => {
+    // Only focus if the activeTab is "search" or undefined (for first load)
+    if (inputRef.current && (!activeTab || activeTab === "search")) {
+      inputRef.current.focus();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -329,6 +340,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       <div className="relative mb-6" ref={searchBarRef}>
         <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500 dark:focus-within:ring-blue-400">
           <input
+            ref={inputRef}
             type="text"
             placeholder="Search for anything..."
             value={query}

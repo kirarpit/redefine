@@ -342,6 +342,7 @@ const Redefine: React.FC = () => {
               setNotification={setNotification}
               showModelRequiredMessage={showModelRequiredMessage}
               setShowModelRequiredMessage={setShowModelRequiredMessage}
+              activeTab={activeTab}
             />
           </div>
           <div style={{ display: activeTab === "history" ? "block" : "none" }}>
