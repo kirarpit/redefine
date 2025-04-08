@@ -21,8 +21,11 @@ html {
 }
 
 /* Ensure consistent scrollbar behavior in all containers */
-.settings-container,
-.content-container {
+.settings-container {
   scrollbar-gutter: stable;
   overflow-y: auto;
+}
+
+.content-container {
+  scrollbar-gutter: stable;
 }
