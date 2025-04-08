@@ -39,9 +39,9 @@ export const searchExplanation = async (
 ): Promise<ExplanationEntry> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/explain/search?q=${query}&modelId=${encodeURIComponent(
-        modelId
-      )}`
+      `${API_BASE_URL}/explain/search?q=${encodeURIComponent(
+        query
+      )}&modelId=${encodeURIComponent(modelId)}`
     );
 
     if (!response.ok) {

@@ -3,8 +3,11 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"redefine/server/db"
 	"redefine/server/routes"
+
+	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -37,11 +40,12 @@ func main() {
 		}))
 	}
 
+	// Can't serve /app/static at root because /api will conflict with it.
+	r.Use(staticFileMiddleware("/app/static"))
+
 	// Set up API routes
 	routes.SetupRoutes(r)
 
-	r.Static("/static", "/app/static/static")
-	r.StaticFile("/", "/app/static/index.html")
 	r.NoRoute(func(c *gin.Context) {
 		c.File("/app/static/index.html")
 	})
@@ -54,5 +58,28 @@ func main() {
 	log.Printf("Server starting on port %s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+	}
+}
+
+func staticFileMiddleware(root string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Skip /api routes
+		if strings.HasPrefix(c.Request.URL.Path, "/api") {
+			c.Next()
+			return
+		}
+
+		// Absolute path to the file
+		fullPath := filepath.Join(root, filepath.Clean(c.Request.URL.Path))
+
+		// If it exists and is not a directory, serve it
+		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+			c.File(fullPath)
+			c.Abort()
+			return
+		}
+
+		// Otherwise, continue to the next handler (NoRoute)
+		c.Next()
 	}
 }

@@ -285,7 +285,7 @@ const Redefine: React.FC = () => {
                   Redefine
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  AI-powered learning reimagined.
+                  AI-powered word learning reimagined.
                 </p>
               </div>
             </div>
