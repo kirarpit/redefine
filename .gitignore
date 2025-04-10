@@ -7,3 +7,5 @@ help
 .env.test.local
 .env.production.local
 data/
+server/go/redefine.db
+server/go/tmp
