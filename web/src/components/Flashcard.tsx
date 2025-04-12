@@ -50,6 +50,7 @@ export const useFlashcardManager = (
     exportToAnki,
     generateAnkiTSV,
     downloadAnkiFile,
+    refreshAnkiConnection,
   } = useAnkiService();
 
   if (!ankiState) {
@@ -437,6 +438,8 @@ export const useFlashcardManager = (
     updateEditedFlashcard,
     toggleDebugInfo: toggleDebugInfo || (() => {}),
     clearLogs: clearLogs || (() => {}),
+    refreshAnkiConnection:
+      refreshAnkiConnection || (() => Promise.resolve(false)),
   };
 };
 
@@ -475,6 +478,7 @@ type FlashcardListProps = {
   updateEditedFlashcard: (field: "front" | "back", value: string) => void;
   toggleDebugInfo: () => void;
   clearLogs?: () => void;
+  refreshConnection?: () => void;
 };
 
 export const FlashcardList: React.FC<FlashcardListProps> = ({
@@ -490,6 +494,7 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
   updateEditedFlashcard,
   toggleDebugInfo,
   clearLogs,
+  refreshConnection,
 }) => {
   // Check if we have valid data to display
   if (
@@ -516,6 +521,7 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
           ankiConnectAvailable={ankiState.ankiConnectAvailable}
           toggleDebugInfo={toggleDebugInfo}
           clearLogs={clearLogs}
+          refreshConnection={refreshConnection}
         />
       )}
 

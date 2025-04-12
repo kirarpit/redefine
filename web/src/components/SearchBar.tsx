@@ -515,6 +515,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 updateEditedFlashcard={flashcardManager.updateEditedFlashcard}
                 toggleDebugInfo={flashcardManager.toggleDebugInfo}
                 clearLogs={flashcardManager.clearLogs}
+                refreshConnection={flashcardManager.refreshAnkiConnection}
               />
             </>
           )}

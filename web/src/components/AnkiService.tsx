@@ -590,7 +590,7 @@ export const useAnkiService = () => {
     });
   };
 
-  // Check if AnkiConnect is available on component mount
+  // Setup on component mount
   useEffect(() => {
     // Log visibility setting once on mount, not on every render
     console.log(
@@ -598,11 +598,8 @@ export const useAnkiService = () => {
       showDebugPanel
     );
 
-    // Initial check
+    // Initial check on component mount
     refreshAnkiConnection();
-
-    // Periodically check for AnkiConnect availability
-    const interval = setInterval(refreshAnkiConnection, 30000); // Check every 30 seconds
 
     // Listen for settings changes
     const handleSettingChange = (
@@ -624,7 +621,6 @@ export const useAnkiService = () => {
     );
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener(
         "ankiDebugSettingChanged",
         handleSettingChange as EventListener
@@ -843,7 +839,14 @@ export const AnkiDebugPanel: React.FC<{
   ankiConnectAvailable: boolean;
   toggleDebugInfo: () => void;
   clearLogs?: () => void;
-}> = ({ debugInfo, ankiConnectAvailable, toggleDebugInfo, clearLogs }) => {
+  refreshConnection?: () => void;
+}> = ({
+  debugInfo,
+  ankiConnectAvailable,
+  toggleDebugInfo,
+  clearLogs,
+  refreshConnection,
+}) => {
   if (!debugInfo) return null;
 
   // Only show the button if the debug panel should be displayed according to settings
@@ -865,13 +868,25 @@ export const AnkiDebugPanel: React.FC<{
             ? "Hide Anki Debug Info"
             : "Show Anki Debug Info"}
         </button>
-        {debugInfo.showDebug && clearLogs && (
-          <button
-            onClick={clearLogs}
-            className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-200"
-          >
-            Clear Logs
-          </button>
+        {debugInfo.showDebug && (
+          <div className="flex space-x-2">
+            {refreshConnection && (
+              <button
+                onClick={refreshConnection}
+                className="text-xs text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-200"
+              >
+                Refresh Connection
+              </button>
+            )}
+            {clearLogs && (
+              <button
+                onClick={clearLogs}
+                className="text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-200"
+              >
+                Clear Logs
+              </button>
+            )}
+          </div>
         )}
       </div>
 
