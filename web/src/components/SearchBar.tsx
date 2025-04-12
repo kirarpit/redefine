@@ -75,8 +75,7 @@ type SearchBarProps = {
   >;
   isStreaming: boolean;
   setIsStreaming: React.Dispatch<React.SetStateAction<boolean>>;
-  streamedText: string;
-  setStreamedText: React.Dispatch<React.SetStateAction<string>>;
+  streamedTextComponent: React.ReactNode;
   exportedFlashcards: Flashcard[];
   setExportedFlashcards: React.Dispatch<React.SetStateAction<Flashcard[]>>;
   onNavigateToSettings?: () => void;
@@ -106,8 +105,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   setWordData,
   isStreaming,
   setIsStreaming,
-  streamedText,
-  setStreamedText,
+  streamedTextComponent,
   exportedFlashcards,
   setExportedFlashcards,
   onNavigateToSettings,
@@ -467,8 +465,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               </div>
 
               <div className="text-gray-700 dark:text-gray-300 leading-relaxed mb-6 min-h-18">
-                {streamedText}
-                {isStreaming && <span className="animate-pulse">|</span>}
+                {streamedTextComponent}
               </div>
 
               {wordData.quotes && wordData.quotes.length > 0 && (

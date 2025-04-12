@@ -1,10 +1,62 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import SearchBar from "./SearchBar";
 import HistoryPanel from "./HistoryPanel";
 import SettingsPanel from "./SettingsPanel";
 import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
 import { searchExplanation, getSelectedModelId } from "./SearchBar";
 import logo from "../assets/logo.svg";
+
+// Create a memo-wrapped component for streamed text to prevent re-renders
+const StreamedText = memo(function StreamedText({
+  explanation,
+  onStreamComplete,
+}: {
+  explanation: string;
+  onStreamComplete: () => void;
+}) {
+  const [streamedText, setStreamedText] = useState<string>("");
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const streamIntervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Start streaming when explanation changes
+    if (explanation.length === 0) return;
+
+    setIsStreaming(true);
+    setStreamedText("");
+    let index = 0;
+
+    streamIntervalRef.current = window.setInterval(() => {
+      if (index < explanation.length) {
+        const currentChar = explanation.charAt(index);
+        setStreamedText((prev) => prev + currentChar);
+        index++;
+      } else {
+        if (streamIntervalRef.current !== null) {
+          clearInterval(streamIntervalRef.current);
+          streamIntervalRef.current = null;
+        }
+        setIsStreaming(false);
+        onStreamComplete();
+      }
+    }, 10);
+
+    // Clean up interval on unmount or when explanation changes
+    return () => {
+      if (streamIntervalRef.current !== null) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = null;
+      }
+    };
+  }, [explanation, onStreamComplete]);
+
+  return (
+    <>
+      {streamedText}
+      {isStreaming && <span className="animate-pulse">|</span>}
+    </>
+  );
+});
 
 type TabType = "search" | "history" | "settings";
 
@@ -91,16 +143,16 @@ const Redefine: React.FC = () => {
     return savedTab ? (JSON.parse(savedTab) as TabType) : "search";
   });
 
-  // Store interval reference
-  const streamIntervalRef = useRef<number | null>(null);
-
   // Lifted search state from SearchBar
   const [query, setQuery] = useState<string>("");
   const [wordData, setWordData] = useState<
     ExplanationEntry | { query: string; error: boolean } | null
   >(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-  const [streamedText, setStreamedText] = useState<string>("");
+
+  // We no longer need to track streamedText at this level
+  // const [streamedText, setStreamedText] = useState<string>("");
+
   const [exportedFlashcards, setExportedFlashcards] = useState<Flashcard[]>(
     () => {
       const exported = localStorage.getItem("exportedFlashcards");
@@ -122,6 +174,9 @@ const Redefine: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showModelRequiredMessage, setShowModelRequiredMessage] =
     useState<boolean>(false);
+
+  // Store the explanation text directly for the StreamedText component
+  const [explanationText, setExplanationText] = useState<string>("");
 
   useEffect(() => {
     console.log("Dark mode useEffect triggered. Current value:", darkMode);
@@ -149,56 +204,17 @@ const Redefine: React.FC = () => {
     localStorage.setItem("activeTab", JSON.stringify(activeTab));
   }, [activeTab]);
 
-  // Clean up interval on unmount
-  useEffect(() => {
-    return () => {
-      if (streamIntervalRef.current !== null) {
-        clearInterval(streamIntervalRef.current);
-        streamIntervalRef.current = null;
-      }
-    };
-  }, []);
-
   const toggleDarkMode = (): void => {
     setDarkMode((prev) => !prev);
   };
 
-  const streamExplanation = (text: string): void => {
-    // Clear any existing interval
-    if (streamIntervalRef.current !== null) {
-      clearInterval(streamIntervalRef.current);
-      streamIntervalRef.current = null;
-    }
-
-    setIsStreaming(true);
-    if (text.length === 0) return;
-
-    setStreamedText("");
-    let index = 0;
-
-    streamIntervalRef.current = window.setInterval(() => {
-      if (index < text.length) {
-        const currentChar = text.charAt(index);
-        setStreamedText((prev) => prev + currentChar);
-        index++;
-      } else {
-        if (streamIntervalRef.current !== null) {
-          clearInterval(streamIntervalRef.current);
-          streamIntervalRef.current = null;
-        }
-        setIsStreaming(false);
-      }
-    }, 10);
-  };
+  // Callback function for when streaming is complete
+  const handleStreamComplete = useCallback(() => {
+    setIsStreaming(false);
+  }, []);
 
   const handleSearch = async (searchQuery: string): Promise<void> => {
     if (!searchQuery) return;
-
-    // Clear any existing streaming interval
-    if (streamIntervalRef.current !== null) {
-      clearInterval(streamIntervalRef.current);
-      streamIntervalRef.current = null;
-    }
 
     const isModelConfigured = (): boolean => {
       const selectedModel = localStorage.getItem("selectedModel");
@@ -211,8 +227,10 @@ const Redefine: React.FC = () => {
     }
 
     setQuery(searchQuery);
-    setIsStreaming(false);
-    setStreamedText("");
+    setIsStreaming(true);
+    // We don't need to set streamedText anymore
+    // setStreamedText("");
+    setExplanationText(""); // Reset explanation text instead
 
     // Set loading states
     setIsLoading(true);
@@ -229,7 +247,9 @@ const Redefine: React.FC = () => {
       const data = await searchExplanation(searchQuery, modelId);
 
       setWordData(data);
-      streamExplanation(data.explanation);
+      // Instead of streaming explanation, we just store the text
+      // streamExplanation(data.explanation);
+      setExplanationText(data.explanation);
 
       console.log("searchQuery", searchQuery);
       setSearchHistory((prev) => {
@@ -247,7 +267,8 @@ const Redefine: React.FC = () => {
         query: searchQuery,
         error: true,
       });
-      setStreamedText("");
+      // setStreamedText("");
+      setExplanationText("");
       setNotification({
         message: "Failed to retrieve explanation. Please try again later.",
         type: "error",
@@ -331,8 +352,15 @@ const Redefine: React.FC = () => {
               setWordData={setWordData}
               isStreaming={isStreaming}
               setIsStreaming={setIsStreaming}
-              streamedText={streamedText}
-              setStreamedText={setStreamedText}
+              // We no longer pass streamedText, but instead pass the StreamedText component
+              streamedTextComponent={
+                wordData && !("error" in wordData) ? (
+                  <StreamedText
+                    explanation={explanationText}
+                    onStreamComplete={handleStreamComplete}
+                  />
+                ) : null
+              }
               exportedFlashcards={exportedFlashcards}
               setExportedFlashcards={setExportedFlashcards}
               onNavigateToSettings={handleNavigateToSettings}
