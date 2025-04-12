@@ -252,8 +252,7 @@ export const useFlashcardManager = (
       setState((prev) => ({
         ...prev,
         exportNotification: {
-          message:
-            "Flashcards saved to database and downloaded! Go to History & Flashcards tab to see them.",
+          message: "Flashcards exported successfully!",
           type: "success",
           visible: true,
         },
@@ -264,7 +263,7 @@ export const useFlashcardManager = (
       setState((prev) => ({
         ...prev,
         exportNotification: {
-          message: "Failed to export flashcards. Please try again later.",
+          message: "Failed to export flashcards. Try again.",
           type: "error",
           visible: true,
         },
@@ -425,71 +424,72 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
 
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-between mb-3 relative">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           Anki Flashcards
         </h3>
-        <div className="flex flex-col items-end">
-          {flashcardState.exportNotification && (
-            <div
-              className={`absolute top-full right-0 z-10 mt-2 px-3 py-2 rounded-md text-sm shadow-md ${
-                flashcardState.exportNotification.type === "success"
-                  ? "bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800"
-                  : "bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800"
-              } flex items-center transition-opacity duration-300 ease-in-out whitespace-nowrap`}
-            >
-              {flashcardState.exportNotification.type === "success" ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-1.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 mr-1.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
-              <span>{flashcardState.exportNotification.message}</span>
-            </div>
-          )}
-          <button
-            onClick={handleExportToAnki}
-            className="flex items-center text-sm font-medium px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+        <button
+          onClick={handleExportToAnki}
+          className="flex items-center text-sm font-medium px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 mr-2"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          Download for Anki
+        </button>
+      </div>
+
+      {flashcardState.exportNotification && (
+        <div
+          className={`mb-4 px-4 py-3 rounded-md ${
+            flashcardState.exportNotification.type === "success"
+              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800"
+              : "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800"
+          } flex items-center`}
+        >
+          {flashcardState.exportNotification.type === "success" ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+              className="h-5 w-5 mr-2 flex-shrink-0"
+              viewBox="0 0 20 20"
+              fill="currentColor"
             >
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
               />
             </svg>
-            Download for Anki
-          </button>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-2 flex-shrink-0"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+          <span className="font-medium">
+            {flashcardState.exportNotification.message}
+          </span>
         </div>
-      </div>
+      )}
 
       <div className="grid gap-3">
         {wordData.flashcards.map((flashcard, index) => (

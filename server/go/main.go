@@ -33,7 +33,7 @@ func main() {
 	if os.Getenv("GIN_MODE") != "release" {
 		log.Println("CORS enabled for development")
 		r.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{"http://localhost:3000"},
+			AllowOrigins:     []string{"*"},
 			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowHeaders:     []string{"Origin", "Content-Type"},
 			AllowCredentials: true,
