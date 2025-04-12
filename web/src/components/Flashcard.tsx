@@ -230,15 +230,16 @@ export const useFlashcardManager = (
           const tag = wordData.query || "redefine";
 
           // Export to Anki
-          const success = await exportToAnki(flashcardsToExport, tag);
+          const result = await exportToAnki(flashcardsToExport, tag);
 
           setState((prev) => ({
             ...prev,
             exportNotification: {
-              message: success
+              message: result.success
                 ? "Flashcards successfully added to Anki!"
-                : "No new flashcards were added to Anki.",
-              type: success ? "success" : "error",
+                : result.errorMessage ||
+                  "No new flashcards were added to Anki.",
+              type: result.success ? "success" : "error",
               visible: true,
             },
             selectedFlashcards: [],

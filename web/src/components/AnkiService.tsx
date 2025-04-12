@@ -16,6 +16,7 @@ export type AnkiDebugInfo = {
 
 export type AnkiState = {
   ankiConnectAvailable: boolean;
+  decksAvailable: string[]; // Add decks cache to state
   debugInfo: AnkiDebugInfo;
 };
 
@@ -39,6 +40,7 @@ export const addLog = (
       // If somehow prev is undefined, create a new state object
       return {
         ankiConnectAvailable: false,
+        decksAvailable: [],
         debugInfo: {
           lastChecked: timestamp,
           error: null,
@@ -163,18 +165,17 @@ export const checkAnkiConnectAvailable = async (
   }
 };
 
-// Helper to create a deck if it doesn't exist
-export const createDeckIfNotExists = async (
-  deckName: string,
+// Helper to get available decks from Anki
+export const getAvailableDecks = async (
   logFunc: (
     message: string,
     level: "info" | "error" | "success",
     details?: any
   ) => void
-): Promise<boolean> => {
+): Promise<string[]> => {
   try {
     // First check which decks are available
-    logFunc("Checking available Anki decks...", "info");
+    logFunc("Retrieving available Anki decks...", "info");
     const decksResponse = await fetch("http://127.0.0.1:8765", {
       method: "POST",
       headers: {
@@ -189,58 +190,79 @@ export const createDeckIfNotExists = async (
     if (!decksResponse.ok) {
       const errorMsg = `HTTP error: ${decksResponse.status}`;
       logFunc(`Failed to get deck list: ${errorMsg}`, "error");
-      return false;
+      return [];
     }
 
     const decksResult = await decksResponse.json();
     logFunc("Available decks in Anki:", "info", decksResult);
 
-    const availableDecks = decksResult.result || [];
+    return decksResult.result || [];
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logFunc(`Error getting available decks: ${errorMessage}`, "error", error);
+    return [];
+  }
+};
 
-    // Check if the deck exists or create it if it doesn't
-    if (!availableDecks.includes(deckName)) {
-      logFunc(`Deck '${deckName}' not found. Will create it.`, "info");
+// Helper to create a deck if it doesn't exist
+export const createDeckIfNotExists = async (
+  deckName: string,
+  logFunc: (
+    message: string,
+    level: "info" | "error" | "success",
+    details?: any
+  ) => void,
+  availableDecks?: string[] // Now accepts optional pre-fetched decks list
+): Promise<boolean> => {
+  try {
+    // Use provided decks list or fetch it if not provided
+    let decks = availableDecks;
+    if (!decks || !decks.length) {
+      decks = await getAvailableDecks(logFunc);
+    }
 
-      // Try to create the deck
-      logFunc(`Creating deck '${deckName}'...`, "info");
-      const createDeckResponse = await fetch("http://127.0.0.1:8765", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "createDeck",
-          version: 6,
-          params: {
-            deck: deckName,
-          },
-        }),
-      });
-
-      if (!createDeckResponse.ok) {
-        const errorMsg = `HTTP error: ${createDeckResponse.status}`;
-        logFunc(`Failed to create deck: ${errorMsg}`, "error");
-        return false;
-      }
-
-      const createDeckResult = await createDeckResponse.json();
-      logFunc(`Create deck result:`, "info", createDeckResult);
-
-      if (createDeckResult.error) {
-        logFunc(
-          `Error creating deck: ${createDeckResult.error}`,
-          "error",
-          createDeckResult
-        );
-        return false;
-      }
-
-      logFunc(`Successfully created deck '${deckName}'`, "success");
-      return true;
-    } else {
+    // Check if the deck exists
+    if (decks.includes(deckName)) {
       logFunc(`Found deck '${deckName}' in Anki`, "success");
       return true;
     }
+
+    // Try to create the deck if it doesn't exist
+    logFunc(`Deck '${deckName}' not found. Will create it.`, "info");
+    const createDeckResponse = await fetch("http://127.0.0.1:8765", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "createDeck",
+        version: 6,
+        params: {
+          deck: deckName,
+        },
+      }),
+    });
+
+    if (!createDeckResponse.ok) {
+      const errorMsg = `HTTP error: ${createDeckResponse.status}`;
+      logFunc(`Failed to create deck: ${errorMsg}`, "error");
+      return false;
+    }
+
+    const createDeckResult = await createDeckResponse.json();
+    logFunc(`Create deck result:`, "info", createDeckResult);
+
+    if (createDeckResult.error) {
+      logFunc(
+        `Error creating deck: ${createDeckResult.error}`,
+        "error",
+        createDeckResult
+      );
+      return false;
+    }
+
+    logFunc(`Successfully created deck '${deckName}'`, "success");
+    return true;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logFunc(`Error in createDeckIfNotExists: ${errorMessage}`, "error", error);
@@ -278,15 +300,6 @@ export const addFlashcardsToAnki = async (
       `Starting to add ${flashcards.length} flashcards to Anki deck '${deckName}'`,
       "info"
     );
-
-    // Create deck if it doesn't exist
-    const deckCreated = await createDeckIfNotExists(deckName, logFunc);
-    if (!deckCreated) {
-      logFunc(
-        `Could not ensure deck '${deckName}' exists, but will try to add notes anyway`,
-        "error"
-      );
-    }
 
     // Determine if we're using a cloze model
     const isClozeModel = modelName.toLowerCase().includes("cloze");
@@ -463,6 +476,7 @@ export const useAnkiService = () => {
   // Initialize state with meaningful defaults
   const [ankiState, setAnkiState] = useState<AnkiState>({
     ankiConnectAvailable: false,
+    decksAvailable: [], // Initialize empty decks array
     debugInfo: {
       lastChecked: "Never",
       error: null,
@@ -483,6 +497,51 @@ export const useAnkiService = () => {
       return;
     }
     addLog(setAnkiState, message, level, details);
+  };
+
+  // Check Anki connection and get decks (centralized function)
+  const refreshAnkiConnection = async (): Promise<boolean> => {
+    if (!ankiState) return false;
+
+    const now = new Date().toLocaleTimeString();
+    setAnkiState((prev) => ({
+      ...prev,
+      debugInfo: {
+        ...prev.debugInfo,
+        connectionAttempts: prev.debugInfo.connectionAttempts + 1,
+        lastChecked: now,
+      },
+    }));
+
+    // Check if AnkiConnect is available
+    const { success, error } = await checkAnkiConnectAvailable(setAnkiState);
+
+    if (success) {
+      // If connection successful, get available decks
+      const decks = await getAvailableDecks(logToAnki);
+
+      setAnkiState((prev) => ({
+        ...prev,
+        ankiConnectAvailable: true,
+        decksAvailable: decks,
+        debugInfo: {
+          ...prev.debugInfo,
+          error: null,
+        },
+      }));
+      return true;
+    } else {
+      // Update state with error
+      setAnkiState((prev) => ({
+        ...prev,
+        ankiConnectAvailable: false,
+        debugInfo: {
+          ...prev.debugInfo,
+          error: error,
+        },
+      }));
+      return false;
+    }
   };
 
   // Clear logs function
@@ -522,37 +581,11 @@ export const useAnkiService = () => {
 
   // Check if AnkiConnect is available on component mount
   useEffect(() => {
-    const checkAnkiConnect = async () => {
-      if (!ankiState) {
-        console.warn("ankiState is undefined in checkAnkiConnect");
-        return;
-      }
-
-      const now = new Date().toLocaleTimeString();
-      setAnkiState((prev) => ({
-        ...prev,
-        debugInfo: {
-          ...prev.debugInfo,
-          connectionAttempts: prev.debugInfo.connectionAttempts + 1,
-          lastChecked: now,
-        },
-      }));
-
-      const { success, error } = await checkAnkiConnectAvailable(setAnkiState);
-      setAnkiState((prev) => ({
-        ...prev,
-        ankiConnectAvailable: success,
-        debugInfo: {
-          ...prev.debugInfo,
-          error: error,
-        },
-      }));
-    };
-
-    checkAnkiConnect();
+    // Initial check
+    refreshAnkiConnection();
 
     // Periodically check for AnkiConnect availability
-    const interval = setInterval(checkAnkiConnect, 30000); // Check every 30 seconds
+    const interval = setInterval(refreshAnkiConnection, 30000); // Check every 30 seconds
 
     // Listen for settings changes
     const handleSettingChange = (
@@ -587,25 +620,32 @@ export const useAnkiService = () => {
     flashcards: { front: string; back: string; type?: string }[],
     query: string,
     tags: string[] = []
-  ): Promise<boolean> => {
+  ): Promise<{ success: boolean; errorMessage?: string }> => {
     if (!ankiState) {
       console.warn("ankiState is undefined in exportToAnki");
-      return false;
+      return {
+        success: false,
+        errorMessage: "Internal error: ankiState is undefined",
+      };
     }
 
     try {
       logToAnki(`Exporting ${flashcards.length} flashcards to Anki`, "info");
 
-      // Check if AnkiConnect is available
-      const { success: ankiConnectChecked } = await checkAnkiConnectAvailable(
-        setAnkiState
-      );
-      if (!ankiConnectChecked) {
-        logToAnki(
-          "AnkiConnect not available, cannot export directly to Anki",
-          "error"
-        );
-        return false;
+      // Check connection if needed and refresh decks list
+      if (!ankiState.ankiConnectAvailable) {
+        const connected = await refreshAnkiConnection();
+        if (!connected) {
+          logToAnki(
+            "AnkiConnect not available, cannot export directly to Anki. Please ensure Anki is running with AnkiConnect plugin installed.",
+            "error"
+          );
+          return {
+            success: false,
+            errorMessage:
+              "AnkiConnect not available. Please ensure Anki is running with AnkiConnect plugin installed.",
+          };
+        }
       }
 
       // Create sanitized tag from query
@@ -616,8 +656,26 @@ export const useAnkiService = () => {
 
       logToAnki(`Using tags: ${allTags.join(", ")}`, "info");
 
-      // Always try to use "Redefine" deck, creating it if needed
+      // Always use "Redefine" deck
       const deckName = "Redefine";
+
+      // Check if the deck exists using the cached deck list
+      let deckExists = ankiState.decksAvailable.includes(deckName);
+
+      if (!deckExists) {
+        logToAnki(
+          `Deck '${deckName}' not found in cached deck list. Will try to create it.`,
+          "info"
+        );
+        // If deck doesn't exist, try to create it
+        const deckCreated = await createDeckIfNotExists(deckName, logToAnki);
+
+        if (!deckCreated) {
+          const errorMessage = `Could not create deck '${deckName}'. Please create this deck manually in Anki first.`;
+          logToAnki(errorMessage, "error");
+          return { success: false, errorMessage };
+        }
+      }
 
       // Group flashcards by type (cloze vs non-cloze)
       const basicFlashcards: { front: string; back: string }[] = [];
@@ -646,7 +704,7 @@ export const useAnkiService = () => {
 
       let successCount = 0;
 
-      // Add basic cards first
+      // Add basic cards
       if (basicFlashcards.length > 0) {
         logToAnki(`Adding ${basicFlashcards.length} basic flashcards`, "info");
         const basicSuccess = await addFlashcardsToAnki(
@@ -672,12 +730,16 @@ export const useAnkiService = () => {
         if (clozeSuccess) successCount += clozeFlashcards.length;
       }
 
-      return successCount > 0;
+      return {
+        success: successCount > 0,
+        errorMessage:
+          successCount === 0 ? "No flashcards were added to Anki." : undefined,
+      };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       logToAnki(`Error exporting to Anki: ${errorMessage}`, "error", error);
-      return false;
+      return { success: false, errorMessage };
     }
   };
 
@@ -690,6 +752,7 @@ export const useAnkiService = () => {
     exportToAnki,
     generateAnkiTSV,
     downloadAnkiFile,
+    refreshAnkiConnection,
   };
 };
 
