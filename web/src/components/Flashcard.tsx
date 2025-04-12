@@ -239,7 +239,7 @@ export const useFlashcardManager = (
         ? wordData.query.replace(/[^a-z0-9]/gi, "_").toLowerCase()
         : "flashcards";
       const date = new Date().toISOString().split("T")[0];
-      downloadLink.download = `anki_${sanitizedQuery}_${date}.txt`;
+      downloadLink.download = `anki_${sanitizedQuery}_${date}.tsv`;
 
       // Trigger the download
       document.body.appendChild(downloadLink);
