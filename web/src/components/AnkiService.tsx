@@ -500,6 +500,13 @@ export const downloadAnkiFile = (tsvContent: string, query: string): void => {
 
 // Hook for managing Anki state
 export const useAnkiService = () => {
+  // Get debug panel visibility setting from localStorage
+  const showDebugPanel = localStorage.getItem("showAnkiDebugPanel") === "true";
+  console.log(
+    "Initial Anki debug panel visibility from settings:",
+    showDebugPanel
+  );
+
   // Initialize state with meaningful defaults
   const [ankiState, setAnkiState] = useState<AnkiState>({
     ankiConnectAvailable: false,
@@ -507,7 +514,7 @@ export const useAnkiService = () => {
       lastChecked: "Never",
       error: null,
       connectionAttempts: 0,
-      showDebug: false,
+      showDebug: showDebugPanel,
       logs: [],
     },
   });
@@ -546,13 +553,18 @@ export const useAnkiService = () => {
       console.warn("ankiState is undefined in toggleDebugInfo");
       return;
     }
-    setAnkiState((prev) => ({
-      ...prev,
-      debugInfo: {
-        ...prev.debugInfo,
-        showDebug: !prev.debugInfo.showDebug,
-      },
-    }));
+    setAnkiState((prev) => {
+      const newShowDebug = !prev.debugInfo.showDebug;
+      // Save the new setting to localStorage
+      localStorage.setItem("showAnkiDebugPanel", newShowDebug.toString());
+      return {
+        ...prev,
+        debugInfo: {
+          ...prev.debugInfo,
+          showDebug: newShowDebug,
+        },
+      };
+    });
   };
 
   // Check if AnkiConnect is available on component mount
@@ -589,7 +601,32 @@ export const useAnkiService = () => {
     // Periodically check for AnkiConnect availability
     const interval = setInterval(checkAnkiConnect, 30000); // Check every 30 seconds
 
-    return () => clearInterval(interval);
+    // Listen for settings changes
+    const handleSettingChange = (
+      event: CustomEvent<{ showDebug: boolean }>
+    ) => {
+      console.log("Anki debug setting changed:", event.detail.showDebug);
+      setAnkiState((prev) => ({
+        ...prev,
+        debugInfo: {
+          ...prev.debugInfo,
+          showDebug: event.detail.showDebug,
+        },
+      }));
+    };
+
+    window.addEventListener(
+      "ankiDebugSettingChanged",
+      handleSettingChange as EventListener
+    );
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(
+        "ankiDebugSettingChanged",
+        handleSettingChange as EventListener
+      );
+    };
   }, []);
 
   // Function to export flashcards to Anki
@@ -739,6 +776,14 @@ export const AnkiDebugPanel: React.FC<{
 }> = ({ debugInfo, ankiConnectAvailable, toggleDebugInfo, clearLogs }) => {
   if (!debugInfo) return null;
 
+  // Only show the button if the debug panel should be displayed according to settings
+  // or if it's already showing (to allow hiding it)
+  const showButton =
+    localStorage.getItem("showAnkiDebugPanel") === "true" ||
+    debugInfo.showDebug;
+
+  if (!showButton) return null;
+
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-2">
@@ -746,7 +791,9 @@ export const AnkiDebugPanel: React.FC<{
           onClick={toggleDebugInfo}
           className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
         >
-          {debugInfo.showDebug ? "Hide Debug Info" : "Show Debug Info"}
+          {debugInfo.showDebug
+            ? "Hide Anki Debug Info"
+            : "Show Anki Debug Info"}
         </button>
         {debugInfo.showDebug && clearLogs && (
           <button

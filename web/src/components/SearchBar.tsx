@@ -508,6 +508,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               <FlashcardList
                 wordData={wordData}
                 flashcardState={flashcardManager.state}
+                ankiState={flashcardManager.ankiState}
                 isFlashcardSelected={flashcardManager.isFlashcardSelected}
                 handleExportToAnki={flashcardManager.handleExportToAnki}
                 toggleFlashcard={flashcardManager.toggleFlashcard}

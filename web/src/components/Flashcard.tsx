@@ -495,8 +495,20 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
       )}
 
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
           Anki Flashcards
+          {ankiState && !ankiState.debugInfo.showDebug && (
+            <span
+              className={`ml-2 inline-block w-2 h-2 rounded-full ${
+                ankiState.ankiConnectAvailable ? "bg-green-500" : "bg-red-500"
+              }`}
+              title={
+                ankiState.ankiConnectAvailable
+                  ? "Anki is connected"
+                  : "Anki is not connected"
+              }
+            ></span>
+          )}
         </h3>
         <button
           onClick={handleExportToAnki}

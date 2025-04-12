@@ -171,6 +171,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   const [enableExpandableEditor, setEnableExpandableEditor] = useState(() => {
     return localStorage.getItem("enableExpandableEditor") !== "false"; // default to true
   });
+  const [showAnkiDebugPanel, setShowAnkiDebugPanel] = useState(() => {
+    return localStorage.getItem("showAnkiDebugPanel") === "true"; // default to false
+  });
 
   const [testQuery, setTestQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -274,11 +277,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       "enableExpandableEditor",
       enableExpandableEditor.toString()
     );
+    localStorage.setItem("showAnkiDebugPanel", showAnkiDebugPanel.toString());
   }, [
     enableStreamingEffect,
     autoSaveFlashcards,
     showPronunciationGuide,
     enableExpandableEditor,
+    showAnkiDebugPanel,
   ]);
 
   // Handle saving prompt template to backend
@@ -556,6 +561,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             id="toggleExpandableEditor"
             defaultChecked={enableExpandableEditor}
             onChange={(e) => setEnableExpandableEditor(e.target.checked)}
+          />
+          <Toggle
+            label="Show Anki debug panel"
+            id="toggleAnkiDebug"
+            defaultChecked={showAnkiDebugPanel}
+            onChange={(e) => {
+              const newValue = e.target.checked;
+              setShowAnkiDebugPanel(newValue);
+              // Force a refresh of any visible Anki debug panels
+              const event = new CustomEvent("ankiDebugSettingChanged", {
+                detail: { showDebug: newValue },
+              });
+              window.dispatchEvent(event);
+            }}
           />
         </div>
       </Section>
