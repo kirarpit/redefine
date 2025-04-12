@@ -266,9 +266,17 @@ export const addFlashcardsToAnki = async (
       logFunc(`Found deck '${deckName}' in Anki`, "success");
     }
 
+    // Determine if we're using a cloze model
+    const isClozeModel = modelName.toLowerCase().includes("cloze");
+    logFunc(
+      `Using model '${modelName}' (${isClozeModel ? "cloze" : "basic"} type)`,
+      "info"
+    );
+
     // Get the field names for the model
     let frontField = "Front";
     let backField = "Back";
+    let textField = "Text"; // For cloze models
 
     try {
       const modelFieldsResponse = await fetch("http://127.0.0.1:8765", {
@@ -290,33 +298,46 @@ export const addFlashcardsToAnki = async (
         const fields = modelFieldsResult.result || [];
         logFunc(`Fields for model '${modelName}':`, "info", fields);
 
-        // Identify front and back fields based on available fields
-        if (fields.includes("Front") && fields.includes("Back")) {
-          // Standard Basic model
-          frontField = "Front";
-          backField = "Back";
-          logFunc("Using standard Front/Back fields", "info");
-        } else if (fields.length >= 2) {
-          // Use first two fields available
-          frontField = fields[0];
-          backField = fields[1];
-          logFunc(
-            `Using ${frontField}/${backField} as front/back fields`,
-            "info"
-          );
-        } else if (fields.length === 1) {
-          // Only one field - put everything in front
-          frontField = fields[0];
-          backField = fields[0]; // Same field
-          logFunc(
-            `Only one field available (${frontField}), combining front/back content`,
-            "info"
-          );
+        if (isClozeModel) {
+          // For cloze models, we need to identify the main text field
+          // Typically "Text" for standard Cloze model
+          if (fields.includes("Text")) {
+            textField = "Text";
+            logFunc("Using standard 'Text' field for cloze model", "info");
+          } else if (fields.length > 0) {
+            // Use the first field for cloze content
+            textField = fields[0];
+            logFunc(`Using '${textField}' as the cloze content field`, "info");
+          }
         } else {
-          logFunc(
-            "No fields found in model, using default Front/Back",
-            "error"
-          );
+          // For non-cloze models (like Basic)
+          if (fields.includes("Front") && fields.includes("Back")) {
+            // Standard Basic model
+            frontField = "Front";
+            backField = "Back";
+            logFunc("Using standard Front/Back fields", "info");
+          } else if (fields.length >= 2) {
+            // Use first two fields available
+            frontField = fields[0];
+            backField = fields[1];
+            logFunc(
+              `Using ${frontField}/${backField} as front/back fields`,
+              "info"
+            );
+          } else if (fields.length === 1) {
+            // Only one field - put everything in front
+            frontField = fields[0];
+            backField = fields[0]; // Same field
+            logFunc(
+              `Only one field available (${frontField}), combining front/back content`,
+              "info"
+            );
+          } else {
+            logFunc(
+              "No fields found in model, using default Front/Back",
+              "error"
+            );
+          }
         }
       }
     } catch (error) {
@@ -332,13 +353,59 @@ export const addFlashcardsToAnki = async (
     for (const card of flashcards) {
       // Create a note in the format required by AnkiConnect with dynamic field names
       const fields: Record<string, string> = {};
-      fields[frontField] = card.front;
 
-      // If front and back use the same field, combine them
-      if (frontField === backField) {
-        fields[backField] = `${card.front}<hr>${card.back}`;
+      if (isClozeModel) {
+        // For cloze models, we put all content in the text field
+        fields[textField] = card.front;
+
+        // If there are other fields, we can try to populate them as well
+        // For example, some cloze models have "Extra" field for additional info
+        try {
+          const modelFieldsResponse = await fetch("http://127.0.0.1:8765", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              action: "modelFieldNames",
+              version: 6,
+              params: {
+                modelName: modelName,
+              },
+            }),
+          });
+
+          if (modelFieldsResponse.ok) {
+            const modelFieldsResult = await modelFieldsResponse.json();
+            const fields = modelFieldsResult.result || [];
+
+            // If there's an "Extra" field, add any back content there
+            if (fields.includes("Extra") && card.back) {
+              fields["Extra"] = card.back;
+            }
+
+            // If there are any other fields, initialize them with empty strings
+            // to prevent errors
+            fields.forEach((field: string) => {
+              if (field !== textField && field !== "Extra" && !fields[field]) {
+                fields[field] = "";
+              }
+            });
+          }
+        } catch (error) {
+          // If we can't get the fields, just continue with what we have
+          logFunc(`Warning: Couldn't get all fields for cloze model`, "info");
+        }
       } else {
-        fields[backField] = card.back;
+        // For basic models, use front and back fields
+        fields[frontField] = card.front;
+
+        // If front and back use the same field, combine them
+        if (frontField === backField) {
+          fields[backField] = `${card.front}<hr>${card.back}`;
+        } else {
+          fields[backField] = card.back;
+        }
       }
 
       const note = {
@@ -631,7 +698,7 @@ export const useAnkiService = () => {
 
   // Function to export flashcards to Anki
   const exportToAnki = async (
-    flashcards: { front: string; back: string }[],
+    flashcards: { front: string; back: string; type?: string }[],
     query: string,
     tags: string[] = []
   ): Promise<boolean> => {
@@ -699,54 +766,149 @@ export const useAnkiService = () => {
       }
 
       // Check available note models
-      let modelName = "Basic"; // Default model name
-      try {
-        const modelsResponse = await fetch("http://127.0.0.1:8765", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: "modelNames",
-            version: 6,
-          }),
-        });
+      const modelsResponse = await fetch("http://127.0.0.1:8765", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "modelNames",
+          version: 6,
+        }),
+      });
 
-        if (modelsResponse.ok) {
-          const modelsResult = await modelsResponse.json();
-          const availableModels = modelsResult.result || [];
-          logToAnki("Available Anki models:", "info", availableModels);
+      let basicModelName = "Basic"; // Default model name for basic cards
+      let clozeModelName = "Cloze"; // Default model name for cloze cards
+      let hasBasicModel = false;
+      let hasClozeModel = false;
 
-          if (availableModels.includes("Basic")) {
-            modelName = "Basic";
-          } else if (availableModels.length > 0) {
-            modelName = availableModels[0];
+      if (modelsResponse.ok) {
+        const modelsResult = await modelsResponse.json();
+        const availableModels = modelsResult.result || [];
+        logToAnki("Available Anki models:", "info", availableModels);
+
+        // Check for Basic model
+        if (availableModels.includes("Basic")) {
+          basicModelName = "Basic";
+          hasBasicModel = true;
+        } else if (availableModels.length > 0) {
+          // Find a non-cloze model to use
+          for (const model of availableModels) {
+            if (!model.toLowerCase().includes("cloze")) {
+              basicModelName = model;
+              hasBasicModel = true;
+              logToAnki(
+                `Model 'Basic' not found, using '${basicModelName}' for basic cards`,
+                "info"
+              );
+              break;
+            }
+          }
+
+          // If we still haven't found a basic model, use the first one
+          if (!hasBasicModel && availableModels.length > 0) {
+            basicModelName = availableModels[0];
+            hasBasicModel = true;
             logToAnki(
-              `Model 'Basic' not found, using '${modelName}' instead`,
+              `No suitable basic model found, using '${basicModelName}' for basic cards`,
               "info"
             );
           }
         }
-      } catch (error) {
+
+        // Check for Cloze model
+        if (availableModels.includes("Cloze")) {
+          clozeModelName = "Cloze";
+          hasClozeModel = true;
+        } else {
+          // Find a model that might be a cloze model
+          for (const model of availableModels) {
+            if (model.toLowerCase().includes("cloze")) {
+              clozeModelName = model;
+              hasClozeModel = true;
+              logToAnki(
+                `Model 'Cloze' not found, using '${clozeModelName}' for cloze cards`,
+                "info"
+              );
+              break;
+            }
+          }
+        }
+
+        if (!hasClozeModel) {
+          logToAnki(
+            "No cloze model found in Anki. Cloze cards will use basic format which won't work properly.",
+            "error"
+          );
+        }
+      } else {
         logToAnki(
-          `Error checking models: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          "error",
-          error
+          `Failed to get available models. Will use defaults.`,
+          "error"
         );
       }
 
-      // Send flashcards to Anki
-      const success = await addFlashcardsToAnki(
-        flashcards,
-        deckName,
-        modelName,
-        allTags,
-        setAnkiState
-      );
+      // Group flashcards by type (cloze vs non-cloze)
+      const basicFlashcards: { front: string; back: string }[] = [];
+      const clozeFlashcards: { front: string; back: string }[] = [];
 
-      return success;
+      // Prepare flashcards based on their type
+      for (const card of flashcards) {
+        if (card.type === "cloze") {
+          // For cloze cards, combine front and back if needed
+          // Check if front already has {{c1::}} format
+          if (card.front.includes("{{c") && card.front.includes("}}")) {
+            clozeFlashcards.push({ front: card.front, back: card.back || "" });
+          } else {
+            // Convert to cloze format if not already formatted
+            const clozeText = card.front.replace(
+              /\[\[(.*?)\]\]/g,
+              "{{c1::$1}}"
+            );
+            clozeFlashcards.push({ front: clozeText, back: card.back || "" });
+          }
+        } else {
+          // Regular basic cards
+          basicFlashcards.push({ front: card.front, back: card.back });
+        }
+      }
+
+      let successCount = 0;
+
+      // Add basic cards first
+      if (basicFlashcards.length > 0 && hasBasicModel) {
+        logToAnki(`Adding ${basicFlashcards.length} basic flashcards`, "info");
+        const basicSuccess = await addFlashcardsToAnki(
+          basicFlashcards,
+          deckName,
+          basicModelName,
+          allTags,
+          setAnkiState
+        );
+        if (basicSuccess) successCount += basicFlashcards.length;
+      }
+
+      // Add cloze cards
+      if (clozeFlashcards.length > 0) {
+        if (hasClozeModel) {
+          logToAnki(
+            `Adding ${clozeFlashcards.length} cloze flashcards`,
+            "info"
+          );
+          const clozeSuccess = await addFlashcardsToAnki(
+            clozeFlashcards,
+            deckName,
+            clozeModelName,
+            allTags,
+            setAnkiState
+          );
+          if (clozeSuccess) successCount += clozeFlashcards.length;
+        } else {
+          logToAnki("Skipping cloze cards - no cloze model available", "error");
+        }
+      }
+
+      return successCount > 0;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
