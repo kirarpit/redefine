@@ -111,6 +111,7 @@ func exportFlashcards(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
+		log.Printf("Invalid request data: %v", err)
 		c.JSON(400, types.ErrorResponse{Error: "Invalid request data"})
 		return
 	}
@@ -125,28 +126,55 @@ func exportFlashcards(c *gin.Context) {
 		request.Format = "anki"
 	}
 
+	log.Printf("Exporting %d flashcards in %s format", len(request.Flashcards), request.Format)
+
 	// Save flashcards to database
 	var savedFlashcards []types.Flashcard
+	var skippedCount int
 	for _, card := range request.Flashcards {
+		// Validate required fields
+		if card.Front == "" || card.Back == "" || card.Query == "" {
+			log.Printf("Skipping flashcard with missing required fields: %+v", card)
+			continue
+		}
+
 		// Set exported timestamp if not provided
 		if card.ExportedAt == "" {
 			card.ExportedAt = time.Now().Format(time.RFC3339)
 		}
 
-		// Only save flashcards with a query
-		if card.Query != "" {
-			savedCard, err := db.AddFlashcard(card)
-			if err != nil {
-				log.Printf("Error saving flashcard: %v", err)
-				// Continue with other cards
-				continue
-			}
+		// Check if flashcard already exists
+		exists, err := db.FlashcardExists(card.Front, card.Back, card.Query)
+		if err != nil {
+			log.Printf("Error checking if flashcard exists: %v", err)
+			continue
+		}
 
-			if savedCard != nil {
-				savedFlashcards = append(savedFlashcards, *savedCard)
-			}
+		if exists {
+			log.Printf("Flashcard already exists, skipping: %s / %s", card.Front, card.Query)
+			skippedCount++
+
+			// Even though we're not saving it again, we still consider it "saved" for the response
+			savedFlashcards = append(savedFlashcards, card)
+			continue
+		}
+
+		// Save the new flashcard
+		savedCard, err := db.AddFlashcard(card)
+		if err != nil {
+			log.Printf("Error saving flashcard: %v", err)
+			// Continue with other cards
+			continue
+		}
+
+		if savedCard != nil {
+			log.Printf("Successfully saved flashcard: %s / %s", card.Front, card.Query)
+			savedFlashcards = append(savedFlashcards, *savedCard)
 		}
 	}
+
+	log.Printf("Export summary: %d saved, %d skipped (already existed)",
+		len(savedFlashcards)-skippedCount, skippedCount)
 
 	// Process based on format
 	if request.Format == "anki" {

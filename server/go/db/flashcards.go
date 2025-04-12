@@ -34,6 +34,18 @@ func GetFlashcards() ([]types.Flashcard, error) {
 
 // AddFlashcard adds a new flashcard to the database
 func AddFlashcard(flashcard types.Flashcard) (*types.Flashcard, error) {
+	// Check if flashcard already exists
+	exists, err := FlashcardExists(flashcard.Front, flashcard.Back, flashcard.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	// If flashcard already exists, return it without inserting
+	if exists {
+		return &flashcard, nil
+	}
+
+	// Flashcard doesn't exist, so insert it
 	db := GetDB()
 	result, err := db.Exec(`
 		INSERT INTO flashcards (query, front, back, exported_at)
@@ -72,4 +84,20 @@ func DeleteFlashcard(query, front, back string) (bool, error) {
 	}
 
 	return rowsAffected > 0, nil
+}
+
+// FlashcardExists checks if a flashcard with the same front, back, and query already exists
+func FlashcardExists(front, back, query string) (bool, error) {
+	db := GetDB()
+	var count int
+	err := db.QueryRow(`
+		SELECT COUNT(*) FROM flashcards 
+		WHERE front = ? AND back = ? AND query = ?
+	`, front, back, query).Scan(&count)
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

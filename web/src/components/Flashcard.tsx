@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ExplanationEntry, Flashcard } from "../types";
+import { API_BASE_URL } from "../config";
 
 // Types
 export type FlashcardStateType = {
@@ -126,18 +127,9 @@ export const useFlashcardManager = (
       return;
     }
 
-    const newExportedFlashcards = [
-      ...exportedFlashcards,
-      ...flashcardsToExport.map((card) => ({
-        ...card,
-        query: wordData.query || "",
-        exportedAt: new Date().toISOString(),
-      })),
-    ];
-
     try {
       // Make API call to save flashcards in the database
-      const response = await fetch("/api/flashcards/export", {
+      const response = await fetch(`${API_BASE_URL}/flashcards/export`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -157,36 +149,111 @@ export const useFlashcardManager = (
         throw new Error("Failed to save flashcards to database");
       }
 
-      // If successful, update the local state
-      setExportedFlashcards(newExportedFlashcards);
+      // Get the updated flashcards from the server response
+      const result = await response.json();
 
-      const existingExportsString = localStorage.getItem("ankiExports") || "[]";
-      const existingExports = JSON.parse(existingExportsString);
+      // The server returns savedFlashcards in the saved_flashcards field
+      const savedFlashcards = result.saved_flashcards;
 
-      const newExport = {
-        exportId: Date.now().toString(),
-        exportDate: new Date().toISOString(),
-        query: wordData.query,
-        flashcards: flashcardsToExport.map((card) => ({
-          front: card.front,
-          back: card.back,
-        })),
+      if (savedFlashcards && Array.isArray(savedFlashcards)) {
+        console.log(
+          `Received ${savedFlashcards.length} flashcards from server`
+        );
+
+        // Merge with existing flashcards, avoiding duplicates
+        // Start with current flashcards
+        const mergedFlashcards = [...exportedFlashcards];
+
+        // Add any new flashcards from the server that don't already exist
+        let addedCount = 0;
+        savedFlashcards.forEach((card: Flashcard) => {
+          const isDuplicate = mergedFlashcards.some(
+            (existing) =>
+              existing.front === card.front &&
+              existing.back === card.back &&
+              existing.query === card.query
+          );
+
+          if (!isDuplicate) {
+            mergedFlashcards.push(card);
+            addedCount++;
+          }
+        });
+
+        console.log(`Added ${addedCount} new flashcards to local state`);
+
+        // Update local state and localStorage
+        setExportedFlashcards(mergedFlashcards);
+        localStorage.setItem(
+          "exportedFlashcards",
+          JSON.stringify(mergedFlashcards)
+        );
+      } else {
+        console.warn("No saved_flashcards in server response:", result);
+      }
+
+      // Generate and download the file in a format that Anki can import
+      // Format: tab-separated values with fields: front, back, tags
+      const generateAnkiTSV = () => {
+        // For AnkiDroid, the first line should be the fields separated by tabs
+        let tsvContent = "#separator:tab\n";
+        tsvContent += "#html:true\n"; // Enable HTML formatting
+        tsvContent += "#columns:Front\tBack\tTags\n"; // Define column names
+
+        // Add each flashcard as a row in the TSV file
+        flashcardsToExport.forEach((card) => {
+          // Clean the content to handle tabs, newlines and quotes properly
+          const front = `<div>${card.front
+            .replace(/\t/g, " ")
+            .replace(/\n/g, "<br>")}</div>`;
+          const back = `<div>${card.back
+            .replace(/\t/g, " ")
+            .replace(/\n/g, "<br>")}</div>`;
+          // Sanitize the tag (remove spaces, special characters)
+          const tag = wordData.query
+            ? wordData.query.toLowerCase().replace(/[^a-z0-9]/gi, "_")
+            : "redefine";
+
+          // Add the row to the TSV content
+          tsvContent += `${front}\t${back}\t${tag}\n`;
+        });
+
+        return tsvContent;
       };
 
-      localStorage.setItem(
-        "ankiExports",
-        JSON.stringify([...existingExports, newExport])
-      );
+      // Create the TSV content
+      const tsvContent = generateAnkiTSV();
 
-      localStorage.setItem(
-        "exportedFlashcards",
-        JSON.stringify(newExportedFlashcards)
-      );
+      // Create a Blob with the TSV content
+      const blob = new Blob([tsvContent], {
+        type: "text/tab-separated-values",
+      });
+
+      // Create a download link
+      const url = URL.createObjectURL(blob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+
+      // Set the filename with the query and date
+      const sanitizedQuery = wordData.query
+        ? wordData.query.replace(/[^a-z0-9]/gi, "_").toLowerCase()
+        : "flashcards";
+      const date = new Date().toISOString().split("T")[0];
+      downloadLink.download = `anki_${sanitizedQuery}_${date}.txt`;
+
+      // Trigger the download
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      // Release the URL object
+      URL.revokeObjectURL(url);
 
       setState((prev) => ({
         ...prev,
         exportNotification: {
-          message: "Flashcards successfully exported to Anki!",
+          message:
+            "Flashcards saved to database and downloaded! Go to History & Flashcards tab to see them.",
           type: "success",
           visible: true,
         },
@@ -419,14 +486,10 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            Export to Anki
+            Download for Anki
           </button>
         </div>
       </div>
-      {/* <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Select cards to export for your study sessions, or edit them to better
-        fit your needs:
-      </p> */}
 
       <div className="grid gap-3">
         {wordData.flashcards.map((flashcard, index) => (

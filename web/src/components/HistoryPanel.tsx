@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Flashcard, SearchHistoryItem } from "../types";
+import { API_BASE_URL } from "../config";
 
 type HistoryPanelProps = {
   searchHistory: SearchHistoryItem[];
@@ -134,11 +135,17 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   };
 
   const removeFlashcard = async (index: number): Promise<void> => {
-    const flashcardToRemove = exportedFlashcards[index];
-
     try {
+      // Get the flashcard based on the index in the sorted array
+      if (index < 0 || index >= sortedFlashcards.length) {
+        console.error("Invalid flashcard index:", index);
+        return;
+      }
+
+      const flashcardToRemove = sortedFlashcards[index];
+
       // Make API call to delete the flashcard from the database
-      const response = await fetch("/api/flashcards/", {
+      const response = await fetch(`${API_BASE_URL}/flashcards/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -153,15 +160,21 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
       if (!response.ok) {
         console.error("Failed to delete flashcard from database");
       }
+
+      // Update local state regardless of API success
+      // Filter out the deleted flashcard based on its content, not index
+      const newFlashcards = exportedFlashcards.filter(
+        (card) =>
+          card.front !== flashcardToRemove.front ||
+          card.back !== flashcardToRemove.back ||
+          card.query !== flashcardToRemove.query
+      );
+
+      setExportedFlashcards(newFlashcards);
+      localStorage.setItem("exportedFlashcards", JSON.stringify(newFlashcards));
     } catch (error) {
       console.error("Error deleting flashcard:", error);
     }
-
-    // Update local state regardless of API success
-    const newFlashcards = [...exportedFlashcards];
-    newFlashcards.splice(index, 1);
-    setExportedFlashcards(newFlashcards);
-    localStorage.setItem("exportedFlashcards", JSON.stringify(newFlashcards));
   };
 
   const formatDate = (dateString: string): string => {
@@ -217,6 +230,87 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     setFlashcardsPage((prev) => Math.min(prev + 1, flashcardsTotalPages));
   const prevFlashcardsPage = () =>
     setFlashcardsPage((prev) => Math.max(prev - 1, 1));
+
+  // Fetch flashcards from the database
+  const fetchFlashcardsFromDatabase = async (): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/flashcards/`);
+
+      if (!response.ok) {
+        console.error("Failed to fetch flashcards from database");
+        return;
+      }
+
+      const flashcardsFromDB = await response.json();
+
+      // Only update if we got data from the server
+      if (Array.isArray(flashcardsFromDB) && flashcardsFromDB.length > 0) {
+        console.log(
+          `Fetched ${flashcardsFromDB.length} flashcards from database`
+        );
+
+        // Get current flashcards from localStorage to avoid state dependency
+        const currentFlashcardsString =
+          localStorage.getItem("exportedFlashcards") || "[]";
+        const currentFlashcards = JSON.parse(
+          currentFlashcardsString
+        ) as Flashcard[];
+
+        // Remove any duplicates within the database flashcards themselves
+        const uniqueDbCards: Flashcard[] = [];
+        flashcardsFromDB.forEach((dbCard: Flashcard) => {
+          const isDuplicateInDb = uniqueDbCards.some(
+            (card) =>
+              card.front === dbCard.front &&
+              card.back === dbCard.back &&
+              card.query === dbCard.query
+          );
+
+          if (!isDuplicateInDb) {
+            uniqueDbCards.push(dbCard);
+          }
+        });
+
+        // Combine with local flashcards, avoiding duplicates
+        const mergedFlashcards = [...currentFlashcards];
+
+        uniqueDbCards.forEach((dbCard: Flashcard) => {
+          // Check if this card already exists in our local set
+          const exists = mergedFlashcards.some(
+            (localCard) =>
+              localCard.front === dbCard.front &&
+              localCard.back === dbCard.back &&
+              localCard.query === dbCard.query
+          );
+
+          if (!exists) {
+            mergedFlashcards.push(dbCard);
+          }
+        });
+
+        // Only update if there are changes
+        if (mergedFlashcards.length !== currentFlashcards.length) {
+          console.log(
+            `Updating flashcards: ${currentFlashcards.length} -> ${mergedFlashcards.length}`
+          );
+
+          // Update state and localStorage
+          setExportedFlashcards(mergedFlashcards);
+          localStorage.setItem(
+            "exportedFlashcards",
+            JSON.stringify(mergedFlashcards)
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching flashcards from database:", error);
+    }
+  };
+
+  // Fetch flashcards when component mounts
+  useEffect(() => {
+    fetchFlashcardsFromDatabase();
+  }, []);
 
   return (
     <div>
@@ -380,9 +474,13 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         </div>
                       </div>
                       <button
-                        onClick={() =>
-                          removeFlashcard(index + flashcardsIndexOfFirstItem)
-                        }
+                        onClick={() => {
+                          // Calculate the actual index in the full exportedFlashcards array
+                          const actualIndex =
+                            flashcardsIndexOfFirstItem + index;
+                          // Use the actual index when removing the flashcard
+                          removeFlashcard(actualIndex);
+                        }}
                         className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 ml-2 p-1"
                       >
                         <svg
