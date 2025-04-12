@@ -21,6 +21,98 @@ export type FlashcardStateType = {
     type: "success" | "error";
     visible: boolean;
   } | null;
+  ankiConnectAvailable: boolean;
+  debugInfo: {
+    lastChecked: string;
+    error: string | null;
+    connectionAttempts: number;
+    showDebug: boolean;
+  };
+};
+
+// AnkiConnect API functions
+const checkAnkiConnectAvailable = async (): Promise<{
+  success: boolean;
+  error: string | null;
+}> => {
+  try {
+    console.log("Checking AnkiConnect availability...");
+    const response = await fetch("http://localhost:8765", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "version",
+        version: 6,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const success = data.result >= 6;
+      console.log("AnkiConnect response:", data);
+      return { success, error: null };
+    }
+    return { success: false, error: `HTTP error: ${response.status}` };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.log("AnkiConnect not available:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+};
+
+const addFlashcardsToAnki = async (
+  flashcards: { front: string; back: string }[],
+  deckName: string = "Default",
+  modelName: string = "Basic",
+  tags: string[] = []
+): Promise<boolean> => {
+  try {
+    // Create notes in the format required by AnkiConnect
+    const notes = flashcards.map((card) => ({
+      deckName,
+      modelName,
+      fields: {
+        Front: card.front,
+        Back: card.back,
+      },
+      tags,
+      options: {
+        allowDuplicate: false,
+      },
+    }));
+
+    // Add notes through AnkiConnect
+    const response = await fetch("http://localhost:8765", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        action: "addNotes",
+        version: 6,
+        params: {
+          notes,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to communicate with AnkiConnect");
+    }
+
+    const result = await response.json();
+    // AnkiConnect returns array of note IDs or null for failed notes
+    const addedCount = result.result.filter(
+      (id: number | null) => id !== null
+    ).length;
+
+    return addedCount > 0;
+  } catch (error) {
+    console.error("Error adding flashcards to Anki:", error);
+    throw error;
+  }
 };
 
 // Hook for managing flashcard state and operations
@@ -39,7 +131,56 @@ export const useFlashcardManager = (
     editedFlashcard: null,
     selectedFlashcards: [],
     exportNotification: null,
+    ankiConnectAvailable: false,
+    debugInfo: {
+      lastChecked: "Never",
+      error: null,
+      connectionAttempts: 0,
+      showDebug: true, // Set to true initially for debugging
+    },
   });
+
+  // Check if AnkiConnect is available on component mount
+  useEffect(() => {
+    const checkAnkiConnect = async () => {
+      const now = new Date().toLocaleTimeString();
+      setState((prev) => ({
+        ...prev,
+        debugInfo: {
+          ...prev.debugInfo,
+          connectionAttempts: prev.debugInfo.connectionAttempts + 1,
+          lastChecked: now,
+        },
+      }));
+
+      const { success, error } = await checkAnkiConnectAvailable();
+      setState((prev) => ({
+        ...prev,
+        ankiConnectAvailable: success,
+        debugInfo: {
+          ...prev.debugInfo,
+          error: error,
+        },
+      }));
+    };
+
+    checkAnkiConnect();
+
+    // Periodically check for AnkiConnect availability
+    const interval = setInterval(checkAnkiConnect, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleDebugInfo = () => {
+    setState((prev) => ({
+      ...prev,
+      debugInfo: {
+        ...prev.debugInfo,
+        showDebug: !prev.debugInfo.showDebug,
+      },
+    }));
+  };
 
   useEffect(() => {
     if (state.exportNotification?.visible) {
@@ -110,6 +251,21 @@ export const useFlashcardManager = (
 
   const handleExportToAnki = async (): Promise<void> => {
     if (!wordData || "error" in wordData || !wordData.flashcards) return;
+
+    // Force check AnkiConnect availability before exporting
+    const { success: ankiConnectChecked, error: ankiConnectError } =
+      await checkAnkiConnectAvailable();
+
+    // Update state with the latest check result
+    setState((prev) => ({
+      ...prev,
+      ankiConnectAvailable: ankiConnectChecked,
+      debugInfo: {
+        ...prev.debugInfo,
+        lastChecked: new Date().toLocaleTimeString(),
+        error: ankiConnectError,
+      },
+    }));
 
     const flashcardsToExport = wordData.flashcards.filter((flashcard) =>
       isFlashcardSelected(flashcard)
@@ -190,6 +346,42 @@ export const useFlashcardManager = (
         );
       } else {
         console.warn("No saved_flashcards in server response:", result);
+      }
+
+      // If AnkiConnect is available, send directly to Anki
+      if (ankiConnectChecked) {
+        try {
+          // Create sanitized tag from query
+          const tag = wordData.query
+            ? wordData.query.toLowerCase().replace(/[^a-z0-9]/gi, "_")
+            : "redefine";
+
+          // Send flashcards to Anki using AnkiConnect
+          const success = await addFlashcardsToAnki(
+            flashcardsToExport,
+            "Redefine", // Deck name
+            "Basic", // Model name
+            [tag] // Tags
+          );
+
+          setState((prev) => ({
+            ...prev,
+            exportNotification: {
+              message: success
+                ? "Flashcards successfully added to Anki!"
+                : "No new flashcards were added to Anki.",
+              type: success ? "success" : "error",
+              visible: true,
+            },
+            selectedFlashcards: [],
+          }));
+
+          // Return early as we've already handled the export
+          return;
+        } catch (error) {
+          console.error("Error adding to Anki via AnkiConnect:", error);
+          // Fall back to file download if AnkiConnect fails
+        }
       }
 
       // Generate and download the file in a format that Anki can import
@@ -379,6 +571,7 @@ export const useFlashcardManager = (
     saveFlashcardEdit,
     cancelFlashcardEdit,
     updateEditedFlashcard,
+    toggleDebugInfo,
   };
 };
 
@@ -400,6 +593,7 @@ type FlashcardListProps = {
   saveFlashcardEdit: (index: number) => void;
   cancelFlashcardEdit: () => void;
   updateEditedFlashcard: (field: "front" | "back", value: string) => void;
+  toggleDebugInfo: () => void;
 };
 
 export const FlashcardList: React.FC<FlashcardListProps> = ({
@@ -412,6 +606,7 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
   saveFlashcardEdit,
   cancelFlashcardEdit,
   updateEditedFlashcard,
+  toggleDebugInfo,
 }) => {
   if (
     !wordData ||
@@ -424,6 +619,66 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
 
   return (
     <div className="mt-8">
+      {/* Debug information panel */}
+      <div className="mb-4">
+        <button
+          onClick={toggleDebugInfo}
+          className="text-xs mb-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+        >
+          {flashcardState.debugInfo.showDebug
+            ? "Hide Debug Info"
+            : "Show Debug Info"}
+        </button>
+
+        {flashcardState.debugInfo.showDebug && (
+          <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-xs border border-gray-200 dark:border-gray-700">
+            <h4 className="font-bold mb-1 text-gray-700 dark:text-gray-300">
+              AnkiConnect Debug
+            </h4>
+            <div className="grid grid-cols-2 gap-1">
+              <div className="text-gray-600 dark:text-gray-400">Status:</div>
+              <div
+                className={
+                  flashcardState.ankiConnectAvailable
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }
+              >
+                {flashcardState.ankiConnectAvailable
+                  ? "Connected"
+                  : "Not Connected"}
+              </div>
+              <div className="text-gray-600 dark:text-gray-400">
+                Last Checked:
+              </div>
+              <div>{flashcardState.debugInfo.lastChecked}</div>
+              <div className="text-gray-600 dark:text-gray-400">
+                Connection Attempts:
+              </div>
+              <div>{flashcardState.debugInfo.connectionAttempts}</div>
+              {flashcardState.debugInfo.error && (
+                <>
+                  <div className="text-gray-600 dark:text-gray-400">Error:</div>
+                  <div className="text-red-600 dark:text-red-400 break-all">
+                    {flashcardState.debugInfo.error}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="mt-2 text-gray-600 dark:text-gray-400">
+              <p>
+                Note: AnkiConnect only works when Anki is running on the same
+                device as this browser.
+              </p>
+              <p>
+                On mobile, install Anki Desktop on your computer and access this
+                site from there.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           Anki Flashcards
@@ -439,14 +694,27 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
             viewBox="0 0 24 24"
             stroke="currentColor"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-            />
+            {flashcardState.ankiConnectAvailable ? (
+              // Icon for direct Anki connection
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            ) : (
+              // Download icon for file export
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            )}
           </svg>
-          Download for Anki
+          {flashcardState.ankiConnectAvailable
+            ? "Send to Anki"
+            : "Download for Anki"}
         </button>
       </div>
 
