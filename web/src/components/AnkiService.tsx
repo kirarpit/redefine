@@ -615,20 +615,18 @@ export const useAnkiService = () => {
     };
   }, []);
 
-  // Function to export flashcards to Anki
+  // Function to export flashcards to Anki - implementing inside the hook for proper scope
   const exportToAnki = async (
     flashcards: { front: string; back: string; type?: string }[],
     query: string,
-    tags: string[] = []
-  ): Promise<{ success: boolean; errorMessage?: string }> => {
-    if (!ankiState) {
-      console.warn("ankiState is undefined in exportToAnki");
-      return {
-        success: false,
-        errorMessage: "Internal error: ankiState is undefined",
-      };
-    }
-
+    tags: string[] = [],
+    exportedFlashcards: { front: string; back: string; query: string }[] = []
+  ): Promise<{
+    success: boolean;
+    errorMessage?: string;
+    exportedCount?: number;
+    duplicates?: number;
+  }> => {
     try {
       logToAnki(`Exporting ${flashcards.length} flashcards to Anki`, "info");
 
@@ -677,12 +675,55 @@ export const useAnkiService = () => {
         }
       }
 
+      // Filter out flashcards that have already been exported to Anki
+      const newFlashcards: { front: string; back: string; type?: string }[] =
+        [];
+      const duplicateFlashcards: {
+        front: string;
+        back: string;
+        type?: string;
+      }[] = [];
+
+      flashcards.forEach((card) => {
+        // Check if this card already exists in exportedFlashcards
+        const isDuplicate = exportedFlashcards.some(
+          (existingCard) =>
+            existingCard.front === card.front && existingCard.back === card.back
+        );
+
+        if (isDuplicate) {
+          duplicateFlashcards.push(card);
+        } else {
+          newFlashcards.push(card);
+        }
+      });
+
+      const duplicateCount = duplicateFlashcards.length;
+
+      if (duplicateCount > 0) {
+        logToAnki(
+          `Skipping ${duplicateCount} flashcards that have already been exported to Anki`,
+          "info"
+        );
+      }
+
+      if (newFlashcards.length === 0) {
+        logToAnki("No new flashcards to export to Anki", "info");
+        return {
+          success: false,
+          errorMessage:
+            "All selected flashcards have already been exported to Anki.",
+          exportedCount: 0,
+          duplicates: duplicateCount,
+        };
+      }
+
       // Group flashcards by type (cloze vs non-cloze)
       const basicFlashcards: { front: string; back: string }[] = [];
       const clozeFlashcards: { front: string; back: string }[] = [];
 
       // Prepare flashcards based on their type
-      for (const card of flashcards) {
+      for (const card of newFlashcards) {
         if (card.type === "cloze") {
           // For cloze cards, combine front and back if needed
           // Check if front already has {{c1::}} format
@@ -734,6 +775,8 @@ export const useAnkiService = () => {
         success: successCount > 0,
         errorMessage:
           successCount === 0 ? "No flashcards were added to Anki." : undefined,
+        exportedCount: successCount,
+        duplicates: duplicateCount,
       };
     } catch (error) {
       const errorMessage =

@@ -229,16 +229,40 @@ export const useFlashcardManager = (
           // Create tag from query
           const tag = wordData.query || "redefine";
 
-          // Export to Anki
-          const result = await exportToAnki(flashcardsToExport, tag);
+          // Export to Anki, passing the exportedFlashcards to check for duplicates
+          const result = await exportToAnki(
+            flashcardsToExport,
+            tag,
+            [],
+            exportedFlashcards
+          );
+
+          // Build a more informative message based on the result
+          let message = "";
+          if (result.success) {
+            message = `${result.exportedCount} flashcard${
+              result.exportedCount !== 1 ? "s" : ""
+            } successfully added to Anki`;
+            if (result.duplicates && result.duplicates > 0) {
+              message += ` (${result.duplicates} duplicate${
+                result.duplicates !== 1 ? "s" : ""
+              } skipped)`;
+            }
+          } else {
+            if (result.duplicates && result.duplicates > 0) {
+              message = `No new flashcards added to Anki - ${
+                result.duplicates
+              } duplicate${result.duplicates !== 1 ? "s" : ""} skipped`;
+            } else {
+              message =
+                result.errorMessage || "Failed to add flashcards to Anki";
+            }
+          }
 
           setState((prev) => ({
             ...prev,
             exportNotification: {
-              message: result.success
-                ? "Flashcards successfully added to Anki!"
-                : result.errorMessage ||
-                  "No new flashcards were added to Anki.",
+              message: message,
               type: result.success ? "success" : "error",
               visible: true,
             },
