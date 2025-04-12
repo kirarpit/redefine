@@ -515,6 +515,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 saveFlashcardEdit={flashcardManager.saveFlashcardEdit}
                 cancelFlashcardEdit={flashcardManager.cancelFlashcardEdit}
                 updateEditedFlashcard={flashcardManager.updateEditedFlashcard}
+                toggleDebugInfo={flashcardManager.toggleDebugInfo}
+                clearLogs={flashcardManager.clearLogs}
               />
             </>
           )}
