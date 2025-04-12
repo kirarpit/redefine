@@ -159,14 +159,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   });
 
   // Display settings
-  const [enableStreamingEffect, setEnableStreamingEffect] = useState(() => {
-    return localStorage.getItem("enableStreamingEffect") !== "false"; // default to true
-  });
   const [autoSaveFlashcards, setAutoSaveFlashcards] = useState(() => {
     return localStorage.getItem("autoSaveFlashcards") === "true"; // default to false
-  });
-  const [showPronunciationGuide, setShowPronunciationGuide] = useState(() => {
-    return localStorage.getItem("showPronunciationGuide") !== "false"; // default to true
   });
   const [enableExpandableEditor, setEnableExpandableEditor] = useState(() => {
     return localStorage.getItem("enableExpandableEditor") !== "false"; // default to true
@@ -264,27 +258,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 
   // Persist display settings to localStorage
   useEffect(() => {
-    localStorage.setItem(
-      "enableStreamingEffect",
-      enableStreamingEffect.toString()
-    );
     localStorage.setItem("autoSaveFlashcards", autoSaveFlashcards.toString());
-    localStorage.setItem(
-      "showPronunciationGuide",
-      showPronunciationGuide.toString()
-    );
     localStorage.setItem(
       "enableExpandableEditor",
       enableExpandableEditor.toString()
     );
     localStorage.setItem("showAnkiDebugPanel", showAnkiDebugPanel.toString());
-  }, [
-    enableStreamingEffect,
-    autoSaveFlashcards,
-    showPronunciationGuide,
-    enableExpandableEditor,
-    showAnkiDebugPanel,
-  ]);
+  }, [autoSaveFlashcards, enableExpandableEditor, showAnkiDebugPanel]);
 
   // Handle saving prompt template to backend
   const handleSavePromptTemplate = async (template: string) => {
@@ -538,24 +518,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 
       <Section title="Display Settings">
         <div className="space-y-3">
-          <Toggle
-            label="Enable streaming text effect"
-            id="toggleStreaming"
-            defaultChecked={enableStreamingEffect}
-            onChange={(e) => setEnableStreamingEffect(e.target.checked)}
-          />
-          <Toggle
+          {/* <Toggle
             label="Auto-save flashcards"
             id="toggleAutoSave"
             defaultChecked={autoSaveFlashcards}
             onChange={(e) => setAutoSaveFlashcards(e.target.checked)}
-          />
-          <Toggle
-            label="Show pronunciation guide"
-            id="togglePronunciation"
-            defaultChecked={showPronunciationGuide}
-            onChange={(e) => setShowPronunciationGuide(e.target.checked)}
-          />
+          /> */}
           <Toggle
             label="Enable expandable prompt editor"
             id="toggleExpandableEditor"
