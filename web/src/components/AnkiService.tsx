@@ -25,7 +25,8 @@ export const addLog = (
   setAnkiState: React.Dispatch<React.SetStateAction<AnkiState>>,
   message: string,
   level: "info" | "error" | "success",
-  details?: any
+  details?: any,
+  skipConsoleLog: boolean = false
 ) => {
   if (!setAnkiState) {
     console.warn("setAnkiState is undefined in addLog");
@@ -33,7 +34,11 @@ export const addLog = (
   }
 
   const timestamp = new Date().toLocaleTimeString();
-  console.log(`[${level.toUpperCase()}] ${message}`, details || "");
+
+  // Only log to console if not explicitly skipped
+  if (!skipConsoleLog) {
+    console.log(`[${level.toUpperCase()}] ${message}`, details || "");
+  }
 
   setAnkiState((prev) => {
     if (!prev) {
@@ -94,7 +99,6 @@ export const checkAnkiConnectAvailable = async (
         ? customAddLog("Checking AnkiConnect availability...", "info")
         : addLog(setAnkiState, "Checking AnkiConnect availability...", "info");
     }
-    console.log("Checking AnkiConnect availability...");
 
     const response = await fetch("http://127.0.0.1:8765", {
       method: "POST",
@@ -110,7 +114,6 @@ export const checkAnkiConnectAvailable = async (
     if (response.ok) {
       const data = await response.json();
       const success = data.result >= 6;
-      console.log("AnkiConnect response:", data);
 
       if (setAnkiState) {
         customAddLog
@@ -144,7 +147,6 @@ export const checkAnkiConnectAvailable = async (
     return { success: false, error: errorMsg };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.log("AnkiConnect not available:", errorMessage);
 
     if (setAnkiState) {
       customAddLog
@@ -370,12 +372,10 @@ export const addFlashcardsToAnki = async (
       if (!response.ok) {
         const errorMsg = `HTTP error: ${response.status}`;
         logFunc(`Failed to send flashcard: ${errorMsg}`, "error");
-        console.error(errorMsg);
         continue;
       }
 
       const result = await response.json();
-      console.log("AnkiConnect addNote response:", result);
 
       // If we get a note ID back, it was successful
       if (result.result) {
@@ -400,7 +400,6 @@ export const addFlashcardsToAnki = async (
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logFunc(`Error in addFlashcardsToAnki: ${errorMessage}`, "error", error);
-    console.error("Error adding flashcards to Anki:", error);
     throw error;
   }
 };
@@ -468,10 +467,6 @@ export const downloadAnkiFile = (tsvContent: string, query: string): void => {
 export const useAnkiService = () => {
   // Get debug panel visibility setting from localStorage
   const showDebugPanel = localStorage.getItem("showAnkiDebugPanel") === "true";
-  console.log(
-    "Initial Anki debug panel visibility from settings:",
-    showDebugPanel
-  );
 
   // Initialize state with meaningful defaults
   const [ankiState, setAnkiState] = useState<AnkiState>({
@@ -490,13 +485,14 @@ export const useAnkiService = () => {
   const logToAnki = (
     message: string,
     level: "info" | "error" | "success",
-    details?: any
+    details?: any,
+    skipConsoleLog: boolean = false
   ) => {
     if (!ankiState) {
       console.warn("ankiState is undefined in logToAnki");
       return;
     }
-    addLog(setAnkiState, message, level, details);
+    addLog(setAnkiState, message, level, details, skipConsoleLog);
   };
 
   // Check Anki connection and get decks (centralized function)
@@ -513,12 +509,27 @@ export const useAnkiService = () => {
       },
     }));
 
-    // Check if AnkiConnect is available
-    const { success, error } = await checkAnkiConnectAvailable(setAnkiState);
+    // Create a custom logging function that avoids double-logging
+    const customLog = (
+      message: string,
+      level: "info" | "error" | "success",
+      details?: any
+    ) => {
+      // Use addLog with skipConsoleLog to avoid duplicate console logs
+      // (since we'll see the logs in the UI)
+      addLog(setAnkiState, message, level, details, true);
+    };
+
+    // Check if AnkiConnect is available with custom logging
+    const { success, error } = await checkAnkiConnectAvailable(
+      undefined, // Skip the setState parameter
+      customLog // Use our custom logging function
+    );
 
     if (success) {
       // If connection successful, get available decks
-      const decks = await getAvailableDecks(logToAnki);
+      // Use customLog directly to avoid duplicate logs
+      const decks = await getAvailableDecks(customLog);
 
       setAnkiState((prev) => ({
         ...prev,
@@ -581,6 +592,12 @@ export const useAnkiService = () => {
 
   // Check if AnkiConnect is available on component mount
   useEffect(() => {
+    // Log visibility setting once on mount, not on every render
+    console.log(
+      "Initial Anki debug panel visibility from settings:",
+      showDebugPanel
+    );
+
     // Initial check
     refreshAnkiConnection();
 
@@ -613,7 +630,7 @@ export const useAnkiService = () => {
         handleSettingChange as EventListener
       );
     };
-  }, []);
+  }, []); // Empty dependency array ensures this only runs once
 
   // Function to export flashcards to Anki - implementing inside the hook for proper scope
   const exportToAnki = async (
@@ -665,8 +682,18 @@ export const useAnkiService = () => {
           `Deck '${deckName}' not found in cached deck list. Will try to create it.`,
           "info"
         );
+
+        // Create custom logger to avoid duplicate logs
+        const customLog = (
+          message: string,
+          level: "info" | "error" | "success",
+          details?: any
+        ) => {
+          logToAnki(message, level, details, true);
+        };
+
         // If deck doesn't exist, try to create it
-        const deckCreated = await createDeckIfNotExists(deckName, logToAnki);
+        const deckCreated = await createDeckIfNotExists(deckName, customLog);
 
         if (!deckCreated) {
           const errorMessage = `Could not create deck '${deckName}'. Please create this deck manually in Anki first.`;
@@ -745,6 +772,15 @@ export const useAnkiService = () => {
 
       let successCount = 0;
 
+      // Create a custom log function for flashcard operations to avoid duplicate logs
+      const customLog = (
+        message: string,
+        level: "info" | "error" | "success",
+        details?: any
+      ) => {
+        logToAnki(message, level, details, true);
+      };
+
       // Add basic cards
       if (basicFlashcards.length > 0) {
         logToAnki(`Adding ${basicFlashcards.length} basic flashcards`, "info");
@@ -753,7 +789,8 @@ export const useAnkiService = () => {
           deckName,
           "Basic",
           allTags,
-          setAnkiState
+          undefined, // Don't pass setAnkiState to avoid duplicate logs
+          customLog // Use our custom log function
         );
         if (basicSuccess) successCount += basicFlashcards.length;
       }
@@ -766,7 +803,8 @@ export const useAnkiService = () => {
           deckName,
           "Cloze",
           allTags,
-          setAnkiState
+          undefined, // Don't pass setAnkiState to avoid duplicate logs
+          customLog // Use our custom log function
         );
         if (clozeSuccess) successCount += clozeFlashcards.length;
       }
@@ -920,17 +958,6 @@ export const AnkiDebugPanel: React.FC<{
               </div>
             </div>
           )}
-
-          <div className="mt-2 text-gray-600 dark:text-gray-400">
-            <p>
-              Note: AnkiConnect only works when Anki is running on the same
-              device as this browser.
-            </p>
-            <p>
-              On mobile, install Anki Desktop on your computer and access this
-              site from there.
-            </p>
-          </div>
         </div>
       )}
     </div>
