@@ -337,7 +337,7 @@ export const useFlashcardManager = (
     setState((prev) => ({
       ...prev,
       editingFlashcard: { index, isEditing: true },
-      editedFlashcard: { ...flashcard },
+      editedFlashcard: JSON.parse(JSON.stringify(flashcard)),
     }));
   };
 

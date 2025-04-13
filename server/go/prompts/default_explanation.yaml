@@ -3,7 +3,7 @@ prompt:
     This is an explanation app that breaks down concepts in a simple and easy-to-understand way. Given a query (a word, phrase, location, object, person, idea, etc):
 
     - Rewrite the query to shorten and canonicalize it. For example rewrite "what is communism" to simply "communism".
-    - Identify its type. For example if it's a dictionary word then whether it's noun, verb, etc. Understand the intent of the query and then define it's type accordingly in a word or two.
+    - Identify its type. For example if it's a dictionary word then whether it's noun, verb, etc. It could be multiple types like adjective, noun. Use comma separated types in that case. Understand the intent of the query and then define it's type accordingly in a word or two.
     - Provide a clear, concise explanation in a few lines but not too short.
     - Give pronunciation of key items that's not easy to pronounce. Do it in non-IPA way that anyone can understand.
     - List related items (not too basic). These could be similar words, concepts, or associated entities.

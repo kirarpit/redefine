@@ -8,11 +8,10 @@ prompt:
     - Make the context strong enough that only one specific word fits.
     - Show the word’s behavior, not just its definition.
     - Make sure the answer can only be one specific word — no ambiguity.
-    - Use multiple sentence contexts to reinforce different shades of meaning.
-    - Phrase the word as an adjective when possible to narrow down options.
+    - Use multiple sentence contexts to reinforce different shades of meaning. Especially when a word can be used as different part-of-speech. Try to cover them all across cards.
     - Add subtle clues or disqualifiers to eliminate near-synonyms.
     - Use cloze deletions for clean, focused recall.
-    - Try double cloze deletions (c1, c2) in the same sentence to map both word and meaning.
+    - Only the first card may be with a double cloze deletion (c1 and c2) so that the objective isn't just to guess the word, but to guess the key word that defines it in the sentence context.
 
     The query is "{query}".
 
@@ -23,5 +22,5 @@ prompt:
       - type: one of [cloze, basic, reversed]
         front: >
           <string>
-        back: <string>
+        back: <string>  # not required for cloze
     ```

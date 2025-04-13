@@ -47,7 +47,7 @@ func createFlashcard(c *gin.Context) {
 	}
 
 	// Validate required fields
-	if flashcard.Front == "" || flashcard.Back == "" || flashcard.Query == "" {
+	if flashcard.Front == "" || flashcard.Query == "" {
 		c.JSON(400, types.ErrorResponse{Error: "Missing required fields"})
 		return
 	}
@@ -82,7 +82,7 @@ func deleteFlashcard(c *gin.Context) {
 	}
 
 	// Validate required fields
-	if request.Front == "" || request.Back == "" || request.Query == "" {
+	if request.Front == "" || request.Query == "" {
 		c.JSON(400, types.ErrorResponse{Error: "Missing required fields"})
 		return
 	}
@@ -133,7 +133,7 @@ func exportFlashcards(c *gin.Context) {
 	var skippedCount int
 	for _, card := range request.Flashcards {
 		// Validate required fields
-		if card.Front == "" || card.Back == "" || card.Query == "" {
+		if card.Front == "" || card.Query == "" {
 			log.Printf("Skipping flashcard with missing required fields: %+v", card)
 			continue
 		}

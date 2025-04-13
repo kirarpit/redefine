@@ -200,10 +200,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === "Enter") {
       if (selectedIndex !== null && suggestions[selectedIndex]) {
-        handleSearch(suggestions[selectedIndex]);
+        handleSearch(suggestions[selectedIndex].trim());
         setSuggestions([]);
       } else {
-        handleSearch(query);
+        handleSearch(query.trim());
         setSuggestions([]);
       }
     } else if (e.key === "ArrowDown") {
@@ -228,7 +228,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   const handleSuggestionClick = (suggestion: string): void => {
-    handleSearch(suggestion);
+    handleSearch(suggestion.trim());
     setSuggestions([]);
   };
 
@@ -354,7 +354,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             disabled={isLoading}
           />
           <button
-            onClick={() => handleSearch(query)}
+            onClick={() => handleSearch(query.trim())}
             className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 px-4 transition duration-150 flex items-center justify-center"
             aria-label="Search"
             type="button"
@@ -497,7 +497,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                       <span
                         key={index}
                         className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm px-3 py-1 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
-                        onClick={() => handleSearch(item)}
+                        onClick={() => handleSearch(item.trim())}
                       >
                         {item}
                       </span>
