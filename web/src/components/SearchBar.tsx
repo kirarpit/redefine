@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { ExplanationEntry, Flashcard } from "../types";
 import { useFlashcardManager, FlashcardList } from "./Flashcard";
-import { dictionary } from "../data/dictionaryData";
 import { API_BASE_URL } from "../config";
 
 // Simple LocationMap component
@@ -60,6 +59,30 @@ export const searchExplanation = async (
   } catch (error) {
     console.error("Error searching for explanation:", error);
     throw error;
+  }
+};
+
+// Add a new function to fetch autocomplete suggestions from the backend
+export const fetchSuggestions = async (query: string): Promise<string[]> => {
+  if (!query.trim()) {
+    return [];
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/explain/autosuggest?q=${encodeURIComponent(
+        query.trim()
+      )}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching suggestions:", error);
+    return [];
   }
 };
 
@@ -127,6 +150,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const searchBarRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isMouseActive, setIsMouseActive] = useState<boolean>(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Use the flashcard manager hook
   const flashcardManager = useFlashcardManager(
@@ -178,17 +202,50 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
   }, [showModelRequiredMessage]);
 
+  // Debounced autocomplete
+  useEffect(() => {
+    const fetchSuggestionsDebounced = async () => {
+      if (!query.trim()) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create a new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
+      try {
+        const results = await fetchSuggestions(query);
+        setSuggestions(results);
+      } catch (error) {
+        // Only log if it's not an abort error
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Error fetching suggestions:", error);
+        }
+        setSuggestions([]);
+      }
+    };
+
+    // Debounce the suggestions request
+    const timeoutId = setTimeout(() => {
+      fetchSuggestionsDebounced();
+    }, 300); // 300ms debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [query]);
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setQuery(value);
-
-    const filteredSuggestions = value
-      ? Object.keys(dictionary).filter((word) =>
-          word.toLowerCase().includes(value.toLowerCase())
-        )
-      : [];
-
-    setSuggestions(filteredSuggestions);
     setSelectedIndex(null);
     setIsMouseActive(false);
   };

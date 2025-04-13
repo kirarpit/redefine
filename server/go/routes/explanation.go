@@ -1,27 +1,75 @@
 package routes
 
 import (
+	"io"
 	"log"
+	"net/http"
+	"os"
+	"path/filepath"
 	"redefine/server/db"
 	"redefine/server/llm"
 	_ "redefine/server/llm/providers" // Import for side effects (registering providers)
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Sample data for autosuggest (in a real app, this would come from a database)
-var sampleExplanations = []string{
-	"democracy",
-	"capitalism",
-	"communism",
-	"socialism",
-	"liberalism",
-	"conservatism",
-	"authoritarianism",
-	"totalitarianism",
-	"imperialism",
-	"nationalism",
+// Global radix trie for autocomplete
+var wordsTrie *RadixTrie
+
+// Initialize the radix trie
+func init() {
+	wordsTrie = NewRadixTrie()
+
+	// Option 1: Load words from the GitHub URL directly
+	// This might not work if the file is too large or GitHub rate limits
+	// wordsTrie.LoadFromURL("https://raw.githubusercontent.com/dwyl/english-words/master/words.txt")
+
+	// Option 2: Download and save the file locally if it doesn't exist, then load it
+	wordsFilePath := filepath.Join(os.TempDir(), "english-words.txt")
+
+	// Check if the file exists
+	if _, err := os.Stat(wordsFilePath); os.IsNotExist(err) {
+		log.Println("Words file not found, downloading...")
+		if err := downloadWordsFile(wordsFilePath); err != nil {
+			log.Printf("Failed to download words file: %v", err)
+			return
+		}
+	}
+
+	// Load words from the local file
+	if err := wordsTrie.LoadFromFile(wordsFilePath); err != nil {
+		log.Printf("Failed to load words file: %v", err)
+	}
+}
+
+// downloadWordsFile downloads the words file from GitHub and saves it locally
+func downloadWordsFile(filePath string) error {
+	// Create the file
+	out, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Get the data
+	resp, err := http.Get("https://raw.githubusercontent.com/dwyl/english-words/master/words.txt")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return err
+	}
+
+	// Writer the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // setupExplanationRoutes sets up routes for explanation APIs
@@ -80,18 +128,8 @@ func autosuggest(c *gin.Context) {
 		return
 	}
 
-	// Filter sample explanations that start with the prefix
-	var suggestions []string
-	for _, term := range sampleExplanations {
-		if strings.HasPrefix(term, prefix) {
-			suggestions = append(suggestions, term)
-		}
-	}
-
-	// Limit to 10 suggestions
-	if len(suggestions) > 10 {
-		suggestions = suggestions[:10]
-	}
+	// Get suggestions using the combined search (limit to 10)
+	suggestions := wordsTrie.FindWords(prefix, 10)
 
 	c.JSON(200, suggestions)
 }
