@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ChangeEvent } from "react";
+import { useState, useEffect, useRef, ChangeEvent, useCallback } from "react";
 import { ExplanationEntry, Flashcard } from "../types";
 import { useFlashcardManager, FlashcardList } from "./Flashcard";
 import { API_BASE_URL } from "../config";
@@ -123,6 +123,7 @@ type SearchBarProps = {
   showModelRequiredMessage: boolean;
   setShowModelRequiredMessage: React.Dispatch<React.SetStateAction<boolean>>;
   activeTab?: string;
+  setPreventSuggestionsRef?: (fn: () => void) => void;
 };
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -144,6 +145,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   showModelRequiredMessage,
   setShowModelRequiredMessage,
   activeTab,
+  setPreventSuggestionsRef,
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -160,6 +162,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
     exportedFlashcards,
     setExportedFlashcards
   );
+
+  // Helper function to prevent suggestions
+  const preventSuggestionsHandler = useCallback(() => {
+    setSuggestions([]);
+    setPreventSuggestions(true);
+  }, []);
+
+  // Register the function to prevent suggestions
+  useEffect(() => {
+    if (setPreventSuggestionsRef) {
+      setPreventSuggestionsRef(preventSuggestionsHandler);
+    }
+  }, [setPreventSuggestionsRef, preventSuggestionsHandler]);
 
   // Focus the search input when component mounts or when tab changes to search
   useEffect(() => {
@@ -266,12 +281,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
         suggestions[selectedIndex]
       ) {
         handleSearch(suggestions[selectedIndex].trim());
-        setSuggestions([]);
-        setPreventSuggestions(true);
+        preventSuggestionsHandler();
       } else {
         handleSearch(query.trim());
-        setSuggestions([]);
-        setPreventSuggestions(true);
+        preventSuggestionsHandler();
       }
     } else if (e.key === "ArrowDown") {
       setSelectedIndex((prevIndex) =>
@@ -296,15 +309,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleSuggestionClick = (suggestion: string): void => {
     handleSearch(suggestion.trim());
-    setSuggestions([]);
-    setPreventSuggestions(true);
+    preventSuggestionsHandler();
   };
 
   // Disable suggestions when search button is clicked directly
   const handleSearchButtonClick = (): void => {
     handleSearch(query.trim());
-    setSuggestions([]);
-    setPreventSuggestions(true);
+    preventSuggestionsHandler();
   };
 
   return (
@@ -579,7 +590,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                       <span
                         key={index}
                         className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm px-3 py-1 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
-                        onClick={() => handleSearch(item.trim())}
+                        onClick={() => handleSuggestionClick(item.trim())}
                       >
                         {item}
                       </span>

@@ -3,6 +3,7 @@ package routes
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -72,6 +73,48 @@ func (rt *RadixTrie) LoadFromFile(filePath string) error {
 	}
 
 	fmt.Printf("Loaded %d words into radix tree\n", count)
+	return nil
+}
+
+// LoadFromURL loads words directly from a URL into the radix tree
+func (rt *RadixTrie) LoadFromURL(url string) error {
+	rt.mutex.Lock()
+	defer rt.mutex.Unlock()
+
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to fetch URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check server response
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	// Read directly from the response body
+	scanner := bufio.NewScanner(resp.Body)
+	count := 0
+
+	for scanner.Scan() {
+		word := strings.TrimSpace(scanner.Text())
+		if word == "" {
+			continue
+		}
+
+		// Convert to lowercase for case-insensitive search
+		word = strings.ToLower(word)
+		rt.tree.Insert(word, true)
+		rt.words[word] = true
+		count++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return fmt.Errorf("error reading from URL: %w", err)
+	}
+
+	fmt.Printf("Loaded %d words into radix tree from URL\n", count)
 	return nil
 }
 

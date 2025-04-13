@@ -213,6 +213,9 @@ const Redefine: React.FC = () => {
   // Store the explanation text directly for the StreamedText component
   const [explanationText, setExplanationText] = useState<string>("");
 
+  // Reference to the preventSuggestions function in SearchBar
+  const preventSuggestionsRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -406,8 +409,17 @@ const Redefine: React.FC = () => {
 
   const handleNavigateToSearch = (word: string): void => {
     setActiveTab("search");
+    // Call the preventSuggestions function if it's available
+    if (preventSuggestionsRef.current) {
+      preventSuggestionsRef.current();
+    }
     handleSearch(word);
   };
+
+  // Function to set the preventSuggestions reference
+  const setPreventSuggestionsRef = useCallback((fn: () => void) => {
+    preventSuggestionsRef.current = fn;
+  }, []);
 
   const handleNavigateToSettings = () => {
     setActiveTab("settings");
@@ -497,6 +509,7 @@ const Redefine: React.FC = () => {
               showModelRequiredMessage={showModelRequiredMessage}
               setShowModelRequiredMessage={setShowModelRequiredMessage}
               activeTab={activeTab}
+              setPreventSuggestionsRef={setPreventSuggestionsRef}
             />
           </div>
           <div style={{ display: activeTab === "history" ? "block" : "none" }}>
