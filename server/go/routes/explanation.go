@@ -1,14 +1,13 @@
 package routes
 
 import (
-	"io"
+	"bufio"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"redefine/server/db"
 	"redefine/server/llm"
 	_ "redefine/server/llm/providers" // Import for side effects (registering providers)
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,34 +18,18 @@ var wordsTrie *RadixTrie
 // Initialize the radix trie
 func init() {
 	wordsTrie = NewRadixTrie()
-	wordsFilePath := filepath.Join(os.TempDir(), "english-words.txt")
 
-	// Check if the file exists
-	if _, err := os.Stat(wordsFilePath); os.IsNotExist(err) {
-		log.Println("Words file not found, downloading...")
-		if err := downloadWordsFile(wordsFilePath); err != nil {
-			log.Printf("Failed to download words file: %v", err)
-			return
-		}
-	}
-
-	// Load words from the local file
-	if err := wordsTrie.LoadFromFile(wordsFilePath); err != nil {
-		log.Printf("Failed to load words file: %v", err)
+	// Load words directly from URL without saving to disk
+	log.Println("Loading words from remote source...")
+	if err := loadWordsFromURL("https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"); err != nil {
+		log.Printf("Failed to load words from URL: %v", err)
 	}
 }
 
-// downloadWordsFile downloads the words file from GitHub and saves it locally
-func downloadWordsFile(filePath string) error {
-	// Create the file
-	out, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
+// loadWordsFromURL loads words directly from a URL into the radix trie
+func loadWordsFromURL(url string) error {
 	// Get the data
-	resp, err := http.Get("https://raw.githubusercontent.com/dwyl/english-words/master/words.txt")
+	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
@@ -57,12 +40,26 @@ func downloadWordsFile(filePath string) error {
 		return err
 	}
 
-	// Writer the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
+	// Read directly from the response body
+	scanner := bufio.NewScanner(resp.Body)
+	count := 0
+
+	for scanner.Scan() {
+		word := strings.TrimSpace(scanner.Text())
+		if word == "" {
+			continue
+		}
+
+		// Add word to trie
+		wordsTrie.Insert(word)
+		count++
+	}
+
+	if err := scanner.Err(); err != nil {
 		return err
 	}
 
+	log.Printf("Loaded %d words into radix tree from URL", count)
 	return nil
 }
 
