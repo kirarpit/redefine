@@ -477,8 +477,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
         {suggestions && suggestions.length > 0 ? (
           <ul
-            className="absolute z-10 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-auto"
+            className="absolute z-50 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-auto"
             onMouseMove={handleMouseMove}
+            style={{ position: "absolute", top: "100%", left: 0, right: 0 }}
           >
             {suggestions.map((suggestion, index) => (
               <li
