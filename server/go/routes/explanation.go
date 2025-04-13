@@ -2,6 +2,8 @@ package routes
 
 import (
 	"log"
+	"os"
+	"redefine/server/autosuggest"
 	"redefine/server/db"
 	"redefine/server/llm"
 	_ "redefine/server/llm/providers" // Import for side effects (registering providers)
@@ -9,17 +11,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Global radix trie for autocomplete
-var wordsTrie *RadixTrie
+// Global autosuggest provider
+var autosuggestProvider autosuggest.Provider
 
-// Initialize the radix trie
+// Initialize the autosuggest provider
 func init() {
-	wordsTrie = NewRadixTrie()
+	// Get provider type from environment variable or use default
+	providerType := os.Getenv("AUTOSUGGEST_PROVIDER")
 
-	// Load words directly from URL without saving to disk
-	log.Println("Loading words from remote source...")
-	if err := wordsTrie.LoadFromURL("https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"); err != nil {
-		log.Printf("Failed to load words from URL: %v", err)
+	// Create a new autosuggest provider
+	var err error
+	autosuggestProvider, err = autosuggest.NewProvider(providerType)
+	if err != nil {
+		log.Printf("Failed to create autosuggest provider: %v. Using default provider.", err)
+		autosuggestProvider, _ = autosuggest.NewProvider("") // Use default
+	} else {
+		log.Printf("Using autosuggest provider: %s", providerType)
+	}
+
+	// Get the data source from environment variable or use default
+	dataSource := os.Getenv("AUTOSUGGEST_DATA_SOURCE")
+	if dataSource == "" {
+		dataSource = "https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"
+	}
+
+	// Load words from the data source
+	log.Printf("Loading words from source: %s", dataSource)
+	if err := autosuggestProvider.LoadData(dataSource); err != nil {
+		log.Printf("Failed to load words from source: %v", err)
 	}
 }
 
@@ -31,7 +50,7 @@ func setupExplanationRoutes(api *gin.RouterGroup) {
 	explainGroup.GET("/search", search)
 
 	// Autosuggest endpoint
-	explainGroup.GET("/autosuggest", autosuggest)
+	explainGroup.GET("/autosuggest", autosuggestHandler)
 }
 
 // search handles the main search API endpoint
@@ -71,13 +90,13 @@ func search(c *gin.Context) {
 	c.JSON(200, gin.H{"entry": *explanation})
 }
 
-// autosuggest handles the autosuggest API endpoint
-func autosuggest(c *gin.Context) {
-	prefix := c.Query("q")
-	if prefix == "" {
-		c.JSON(200, []string{})
-		return
-	}
-	suggestions := wordsTrie.FindWords(prefix, 10)
-	c.JSON(200, suggestions)
+// autosuggestHandler handles the autosuggest API endpoint
+func autosuggestHandler(c *gin.Context) {
+	query := c.Query("q")
+	limit := 10 // Default limit
+
+	// Use the handler function from the autosuggest package
+	response := autosuggest.HandleRequest(autosuggestProvider, query, limit)
+
+	c.JSON(200, response.Suggestions) // Keep the response format the same for backward compatibility
 }

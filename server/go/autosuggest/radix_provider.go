@@ -1,4 +1,4 @@
-package routes
+package autosuggest
 
 import (
 	"bufio"
@@ -11,25 +11,25 @@ import (
 	"github.com/armon/go-radix"
 )
 
-// RadixTrie is a wrapper around go-radix tree with additional functionality for autocomplete
-type RadixTrie struct {
+// RadixProvider is an implementation of Provider using a radix tree
+type RadixProvider struct {
 	tree  *radix.Tree
 	words map[string]bool // For substring search
 	mutex sync.RWMutex
 }
 
-// NewRadixTrie creates a new RadixTrie for autocomplete
-func NewRadixTrie() *RadixTrie {
-	return &RadixTrie{
+// NewRadixProvider creates a new RadixProvider for autosuggest
+func NewRadixProvider() *RadixProvider {
+	return &RadixProvider{
 		tree:  radix.New(),
 		words: make(map[string]bool),
 	}
 }
 
 // Insert adds a word to the radix tree
-func (rt *RadixTrie) Insert(word string) {
-	rt.mutex.Lock()
-	defer rt.mutex.Unlock()
+func (rp *RadixProvider) Insert(word string) {
+	rp.mutex.Lock()
+	defer rp.mutex.Unlock()
 
 	// Convert to lowercase for case-insensitive search
 	word = strings.ToLower(strings.TrimSpace(word))
@@ -37,14 +37,28 @@ func (rt *RadixTrie) Insert(word string) {
 		return
 	}
 
-	rt.tree.Insert(word, true)
-	rt.words[word] = true
+	rp.tree.Insert(word, true)
+	rp.words[word] = true
 }
 
-// LoadFromFile loads words from a file into the radix tree
-func (rt *RadixTrie) LoadFromFile(filePath string) error {
-	rt.mutex.Lock()
-	defer rt.mutex.Unlock()
+// FindSuggestions implements the Provider interface
+func (rp *RadixProvider) FindSuggestions(query string, limit int) []string {
+	return rp.findWords(query, limit)
+}
+
+// LoadData implements the Provider interface
+func (rp *RadixProvider) LoadData(source string) error {
+	// Determine if the source is a file or URL
+	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
+		return rp.loadFromURL(source)
+	}
+	return rp.loadFromFile(source)
+}
+
+// loadFromFile loads words from a file into the radix tree
+func (rp *RadixProvider) loadFromFile(filePath string) error {
+	rp.mutex.Lock()
+	defer rp.mutex.Unlock()
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -63,8 +77,8 @@ func (rt *RadixTrie) LoadFromFile(filePath string) error {
 
 		// Convert to lowercase for case-insensitive search
 		word = strings.ToLower(word)
-		rt.tree.Insert(word, true)
-		rt.words[word] = true
+		rp.tree.Insert(word, true)
+		rp.words[word] = true
 		count++
 	}
 
@@ -72,14 +86,14 @@ func (rt *RadixTrie) LoadFromFile(filePath string) error {
 		return fmt.Errorf("error reading file: %w", err)
 	}
 
-	fmt.Printf("Loaded %d words into radix tree\n", count)
+	fmt.Printf("Loaded %d words into radix provider\n", count)
 	return nil
 }
 
-// LoadFromURL loads words directly from a URL into the radix tree
-func (rt *RadixTrie) LoadFromURL(url string) error {
-	rt.mutex.Lock()
-	defer rt.mutex.Unlock()
+// loadFromURL loads words directly from a URL into the radix tree
+func (rp *RadixProvider) loadFromURL(url string) error {
+	rp.mutex.Lock()
+	defer rp.mutex.Unlock()
 
 	// Get the data
 	resp, err := http.Get(url)
@@ -105,8 +119,8 @@ func (rt *RadixTrie) LoadFromURL(url string) error {
 
 		// Convert to lowercase for case-insensitive search
 		word = strings.ToLower(word)
-		rt.tree.Insert(word, true)
-		rt.words[word] = true
+		rp.tree.Insert(word, true)
+		rp.words[word] = true
 		count++
 	}
 
@@ -114,14 +128,14 @@ func (rt *RadixTrie) LoadFromURL(url string) error {
 		return fmt.Errorf("error reading from URL: %w", err)
 	}
 
-	fmt.Printf("Loaded %d words into radix tree from URL\n", count)
+	fmt.Printf("Loaded %d words into radix provider from URL\n", count)
 	return nil
 }
 
-// FindWordsWithPrefix finds all words that start with the given prefix
-func (rt *RadixTrie) FindWordsWithPrefix(prefix string, limit int) []string {
-	rt.mutex.RLock()
-	defer rt.mutex.RUnlock()
+// findWordsWithPrefix finds all words that start with the given prefix
+func (rp *RadixProvider) findWordsWithPrefix(prefix string, limit int) []string {
+	rp.mutex.RLock()
+	defer rp.mutex.RUnlock()
 
 	// Convert to lowercase for case-insensitive search
 	prefix = strings.ToLower(strings.TrimSpace(prefix))
@@ -132,9 +146,9 @@ func (rt *RadixTrie) FindWordsWithPrefix(prefix string, limit int) []string {
 	var results []string
 
 	// WalkPrefix walks the tree and finds all keys with the given prefix
-	rt.tree.WalkPrefix(prefix, func(s string, v interface{}) bool {
+	rp.tree.WalkPrefix(prefix, func(s string, v interface{}) bool {
 		results = append(results, s)
-		// Return false to continue walking
+		// Return true to stop walking if we've reached the limit
 		return len(results) >= limit
 	})
 
@@ -146,10 +160,10 @@ func (rt *RadixTrie) FindWordsWithPrefix(prefix string, limit int) []string {
 	return results
 }
 
-// FindWordsWithSubstring finds all words that contain the given substring
-func (rt *RadixTrie) FindWordsWithSubstring(substring string, limit int) []string {
-	rt.mutex.RLock()
-	defer rt.mutex.RUnlock()
+// findWordsWithSubstring finds all words that contain the given substring
+func (rp *RadixProvider) findWordsWithSubstring(substring string, limit int) []string {
+	rp.mutex.RLock()
+	defer rp.mutex.RUnlock()
 
 	// Convert to lowercase for case-insensitive search
 	substring = strings.ToLower(strings.TrimSpace(substring))
@@ -161,7 +175,7 @@ func (rt *RadixTrie) FindWordsWithSubstring(substring string, limit int) []strin
 
 	// For substring search, we need to iterate through all words
 	// Since the word list could be large, we limit our search
-	for word := range rt.words {
+	for word := range rp.words {
 		if strings.Contains(word, substring) {
 			results = append(results, word)
 			if limit > 0 && len(results) >= limit {
@@ -173,12 +187,12 @@ func (rt *RadixTrie) FindWordsWithSubstring(substring string, limit int) []strin
 	return results
 }
 
-// FindWords combines prefix and substring search
+// findWords combines prefix and substring search
 // It first tries prefix search, and if that doesn't yield enough results,
 // falls back to substring search to fill the remainder
-func (rt *RadixTrie) FindWords(query string, limit int) []string {
+func (rp *RadixProvider) findWords(query string, limit int) []string {
 	// First try prefix search
-	prefixResults := rt.FindWordsWithPrefix(query, limit)
+	prefixResults := rp.findWordsWithPrefix(query, limit)
 
 	// If we got enough results, return them
 	if len(prefixResults) >= limit {
@@ -187,7 +201,7 @@ func (rt *RadixTrie) FindWords(query string, limit int) []string {
 
 	// Otherwise, get remaining results from substring search
 	remainingLimit := limit - len(prefixResults)
-	substringResults := rt.FindWordsWithSubstring(query, remainingLimit)
+	substringResults := rp.findWordsWithSubstring(query, remainingLimit)
 
 	// Combine results, ensuring no duplicates
 	resultMap := make(map[string]bool)

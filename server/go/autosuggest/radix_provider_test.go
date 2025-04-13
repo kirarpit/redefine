@@ -1,12 +1,12 @@
-package routes
+package autosuggest
 
 import (
 	"reflect"
 	"testing"
 )
 
-func TestRadixTrieInsertAndFindPrefix(t *testing.T) {
-	trie := NewRadixTrie()
+func TestRadixProviderInsertAndFindPrefix(t *testing.T) {
+	provider := NewRadixProvider()
 
 	// Insert test words
 	testWords := []string{
@@ -23,7 +23,7 @@ func TestRadixTrieInsertAndFindPrefix(t *testing.T) {
 	}
 
 	for _, word := range testWords {
-		trie.Insert(word)
+		provider.Insert(word)
 	}
 
 	// Test cases
@@ -61,7 +61,7 @@ func TestRadixTrieInsertAndFindPrefix(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("prefix: "+tc.prefix, func(t *testing.T) {
-			results := trie.FindWordsWithPrefix(tc.prefix, tc.limit)
+			results := provider.findWordsWithPrefix(tc.prefix, tc.limit)
 			t.Logf("Query '%s', got results: %v", tc.prefix, results)
 
 			// Sort both slices for comparison
@@ -91,8 +91,8 @@ func sortedCopy(strs []string) []string {
 }
 
 // Test the combined search function
-func TestRadixTrieFindWords(t *testing.T) {
-	trie := NewRadixTrie()
+func TestRadixProviderFindSuggestions(t *testing.T) {
+	provider := NewRadixProvider()
 
 	// Insert test words
 	testWords := []string{
@@ -109,7 +109,7 @@ func TestRadixTrieFindWords(t *testing.T) {
 	}
 
 	for _, word := range testWords {
-		trie.Insert(word)
+		provider.Insert(word)
 	}
 
 	// Test cases
@@ -132,7 +132,7 @@ func TestRadixTrieFindWords(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run("query: "+tc.query, func(t *testing.T) {
-			results := trie.FindWords(tc.query, tc.limit)
+			results := provider.FindSuggestions(tc.query, tc.limit)
 			t.Logf("Query '%s', got results: %v", tc.query, results)
 
 			// Sort both slices for comparison
