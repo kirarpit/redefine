@@ -17,12 +17,23 @@ const StreamedText = memo(function StreamedText({
   const [streamedText, setStreamedText] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const streamIntervalRef = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const fullTextRef = useRef<HTMLDivElement>(null);
 
   // Check if streaming is enabled in localStorage
   const isStreamingEnabled =
     localStorage.getItem("enableStreamingText") !== "false";
 
   useEffect(() => {
+    // Calculate and set the height for the full content once when explanation changes
+    if (explanation.length > 0 && fullTextRef.current && containerRef.current) {
+      // Copy the full text to our hidden div to measure its height
+      fullTextRef.current.textContent = explanation;
+      // Set the container min-height to match the full content
+      const fullHeight = fullTextRef.current.getBoundingClientRect().height;
+      containerRef.current.style.minHeight = `${fullHeight}px`;
+    }
+
     // Start streaming when explanation changes
     if (explanation.length === 0) return;
 
@@ -63,10 +74,22 @@ const StreamedText = memo(function StreamedText({
   }, [explanation, onStreamComplete, isStreamingEnabled]);
 
   return (
-    <>
-      {streamedText}
-      {isStreaming && <span className="animate-pulse">|</span>}
-    </>
+    <div ref={containerRef} className="relative">
+      {/* The visible streamed text */}
+      <div className="relative z-10">
+        {streamedText}
+        {isStreaming && <span className="animate-pulse">|</span>}
+      </div>
+
+      {/* Hidden div with full content to calculate height - not visible but used for sizing */}
+      <div
+        ref={fullTextRef}
+        className="absolute opacity-0 pointer-events-none"
+        aria-hidden="true"
+      >
+        {explanation}
+      </div>
+    </div>
   );
 });
 
