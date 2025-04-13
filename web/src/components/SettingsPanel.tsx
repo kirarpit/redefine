@@ -197,6 +197,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   const [showAnkiDebugPanel, setShowAnkiDebugPanel] = useState(() => {
     return localStorage.getItem("showAnkiDebugPanel") === "true"; // default to false
   });
+  const [enableStreamingText, setEnableStreamingText] = useState(() => {
+    return localStorage.getItem("enableStreamingText") !== "false"; // default to true
+  });
 
   const [testQuery, setTestQuery] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -344,7 +347,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       enableExpandableEditor.toString()
     );
     localStorage.setItem("showAnkiDebugPanel", showAnkiDebugPanel.toString());
-  }, [autoSaveFlashcards, enableExpandableEditor, showAnkiDebugPanel]);
+    localStorage.setItem("enableStreamingText", enableStreamingText.toString());
+  }, [
+    autoSaveFlashcards,
+    enableExpandableEditor,
+    showAnkiDebugPanel,
+    enableStreamingText,
+  ]);
 
   // Handle saving prompt template to backend
   const handleSavePromptTemplate = async (template: string) => {
@@ -664,6 +673,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             id="toggleExpandableEditor"
             defaultChecked={enableExpandableEditor}
             onChange={(e) => setEnableExpandableEditor(e.target.checked)}
+          />
+          <Toggle
+            label="Enable streaming text animation"
+            id="toggleStreamingText"
+            defaultChecked={enableStreamingText}
+            onChange={(e) => setEnableStreamingText(e.target.checked)}
           />
           <Toggle
             label="Show Anki debug panel"

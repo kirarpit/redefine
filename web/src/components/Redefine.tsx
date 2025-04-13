@@ -18,9 +18,21 @@ const StreamedText = memo(function StreamedText({
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const streamIntervalRef = useRef<number | null>(null);
 
+  // Check if streaming is enabled in localStorage
+  const isStreamingEnabled =
+    localStorage.getItem("enableStreamingText") !== "false";
+
   useEffect(() => {
     // Start streaming when explanation changes
     if (explanation.length === 0) return;
+
+    // If streaming is disabled, show the entire text at once
+    if (!isStreamingEnabled) {
+      setStreamedText(explanation);
+      setIsStreaming(false);
+      onStreamComplete();
+      return;
+    }
 
     setIsStreaming(true);
     setStreamedText("");
@@ -48,7 +60,7 @@ const StreamedText = memo(function StreamedText({
         streamIntervalRef.current = null;
       }
     };
-  }, [explanation, onStreamComplete]);
+  }, [explanation, onStreamComplete, isStreamingEnabled]);
 
   return (
     <>
