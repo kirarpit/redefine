@@ -172,6 +172,8 @@ const Redefine: React.FC = () => {
     visible: boolean;
   } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoadingFlashcards, setIsLoadingFlashcards] =
+    useState<boolean>(false);
   const [showModelRequiredMessage, setShowModelRequiredMessage] =
     useState<boolean>(false);
 
@@ -232,6 +234,7 @@ const Redefine: React.FC = () => {
 
     // Set loading states
     setIsLoading(true);
+    setIsLoadingFlashcards(true);
     setWordData(null);
 
     try {
@@ -239,25 +242,15 @@ const Redefine: React.FC = () => {
       if (!modelId) {
         setShowModelRequiredMessage(true);
         setIsLoading(false);
+        setIsLoadingFlashcards(false);
         return;
       }
 
-      // Make two parallel API calls - one for general explanation and one for Anki flashcards
-      const [generalData, ankiData] = await Promise.all([
-        searchExplanation(searchQuery, modelId, "general"),
-        searchExplanation(searchQuery, modelId, "anki"),
-      ]);
+      // Start both API calls in parallel
+      const generalPromise = searchExplanation(searchQuery, modelId, "general");
+      const ankiPromise = searchExplanation(searchQuery, modelId, "anki");
 
-      // Merge the flashcards from the ankiData with the general explanation data
-      const mergedData = {
-        ...generalData,
-        flashcards: ankiData.flashcards || [],
-      };
-
-      setWordData(mergedData);
-      setExplanationText(generalData.explanation);
-
-      console.log("searchQuery", searchQuery);
+      // Update search history
       setSearchHistory((prev) => {
         const filteredHistory = prev.filter(
           (item) => item.query !== searchQuery
@@ -267,20 +260,115 @@ const Redefine: React.FC = () => {
           ...filteredHistory,
         ].slice(0, 100);
       });
+
+      // Set up flags to track which responses have been received
+      let generalDataReceived = false;
+      let ankiDataReceived = false;
+      let generalData: ExplanationEntry | null = null;
+      let ankiFlashcards:
+        | Array<{ type: string; front: string; back: string }>
+        | undefined = undefined;
+
+      // Set up a handler for when the general explanation is received
+      generalPromise
+        .then((data) => {
+          generalData = data;
+          generalDataReceived = true;
+
+          // Initialize wordData with general explanation data
+          setWordData({
+            ...data,
+            // If anki data has already arrived, use those flashcards, otherwise use empty array
+            flashcards: ankiDataReceived ? ankiFlashcards || [] : [],
+          });
+
+          setExplanationText(data.explanation);
+          setIsLoading(false);
+
+          // If this is the second response to arrive, we can consider the whole search complete
+          if (ankiDataReceived) {
+            setIsLoadingFlashcards(false);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching general explanation:", error);
+          // Only set error state if anki data has not been received yet
+          if (!ankiDataReceived) {
+            setWordData({
+              query: searchQuery,
+              error: true,
+            });
+            setExplanationText("");
+            setNotification({
+              message:
+                "Failed to retrieve explanation. Please try again later.",
+              type: "error",
+              visible: true,
+            });
+          }
+          setIsLoading(false);
+
+          // If anki data was already received, we can consider the search complete
+          if (ankiDataReceived) {
+            setIsLoadingFlashcards(false);
+          }
+        });
+
+      // Set up a handler for when the anki flashcards are received
+      ankiPromise
+        .then((data) => {
+          ankiFlashcards = data.flashcards;
+          ankiDataReceived = true;
+
+          // If general data has already arrived, update the wordData with flashcards
+          if (generalDataReceived && generalData) {
+            setWordData((currentWordData) => {
+              if (currentWordData && !("error" in currentWordData)) {
+                return {
+                  ...currentWordData,
+                  flashcards: data.flashcards || [],
+                };
+              }
+              return currentWordData;
+            });
+          }
+
+          // If this is the second response to arrive, we can consider the whole search complete
+          if (generalDataReceived) {
+            setIsLoadingFlashcards(false);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching Anki flashcards:", error);
+          ankiDataReceived = true;
+
+          // If general data has already arrived, we can consider the search complete
+          if (generalDataReceived) {
+            setIsLoadingFlashcards(false);
+          }
+        });
+
+      // Wait for both promises to settle (either resolve or reject)
+      await Promise.allSettled([generalPromise, ankiPromise]);
+
+      // Ensure loading states are reset even if there were unexpected issues with promise handling
+      if (isLoading) setIsLoading(false);
+      if (isLoadingFlashcards) setIsLoadingFlashcards(false);
     } catch (error) {
-      console.error("Error searching:", error);
+      // This catch block handles any errors that might occur outside of the promise handling
+      console.error("Unexpected error in search handling:", error);
       setWordData({
         query: searchQuery,
         error: true,
       });
       setExplanationText("");
       setNotification({
-        message: "Failed to retrieve explanation. Please try again later.",
+        message: "An unexpected error occurred. Please try again.",
         type: "error",
         visible: true,
       });
-    } finally {
       setIsLoading(false);
+      setIsLoadingFlashcards(false);
     }
   };
 
@@ -371,6 +459,7 @@ const Redefine: React.FC = () => {
               onNavigateToSettings={handleNavigateToSettings}
               handleSearch={handleSearch}
               isLoading={isLoading}
+              isLoadingFlashcards={isLoadingFlashcards}
               notification={notification}
               setNotification={setNotification}
               showModelRequiredMessage={showModelRequiredMessage}

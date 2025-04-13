@@ -84,6 +84,7 @@ type SearchBarProps = {
   onNavigateToSettings?: () => void;
   handleSearch: (searchQuery: string) => Promise<void>;
   isLoading: boolean;
+  isLoadingFlashcards?: boolean;
   notification: {
     message: string;
     type: "success" | "error";
@@ -114,6 +115,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onNavigateToSettings,
   handleSearch,
   isLoading,
+  isLoadingFlashcards = false,
   notification,
   setNotification,
   showModelRequiredMessage,
@@ -519,6 +521,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 toggleDebugInfo={flashcardManager.toggleDebugInfo}
                 clearLogs={flashcardManager.clearLogs}
                 refreshConnection={flashcardManager.refreshAnkiConnection}
+                isLoadingFlashcards={isLoadingFlashcards}
               />
             </>
           )}

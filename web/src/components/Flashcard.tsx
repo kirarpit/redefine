@@ -479,6 +479,7 @@ type FlashcardListProps = {
   toggleDebugInfo: () => void;
   clearLogs?: () => void;
   refreshConnection?: () => void;
+  isLoadingFlashcards?: boolean;
 };
 
 export const FlashcardList: React.FC<FlashcardListProps> = ({
@@ -495,13 +496,22 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
   toggleDebugInfo,
   clearLogs,
   refreshConnection,
+  isLoadingFlashcards = false,
 }) => {
   // Check if we have valid data to display
+  if (!wordData || "error" in wordData) {
+    return null;
+  }
+
+  // If we have wordData but flashcards are empty and still loading, show loading state
+  const showLoadingState =
+    isLoadingFlashcards &&
+    (!wordData.flashcards || wordData.flashcards.length === 0);
+
+  // Only exit early if we have no flashcards and we're not loading
   if (
-    !wordData ||
-    "error" in wordData ||
-    !wordData.flashcards ||
-    wordData.flashcards.length === 0
+    !showLoadingState &&
+    (!wordData.flashcards || wordData.flashcards.length === 0)
   ) {
     return null;
   }
@@ -617,123 +627,113 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
         </div>
       )}
 
-      <div className="grid gap-3">
-        {wordData.flashcards.map((flashcard, index) => (
-          <div
-            key={index}
-            className={`border rounded-lg overflow-hidden ${
-              isFlashcardSelected(flashcard)
-                ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-            }`}
-          >
-            {flashcardState.editingFlashcard &&
-            flashcardState.editingFlashcard.index === index ? (
-              <div className="p-4">
-                <div className="mb-3">
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Front
-                  </label>
-                  <input
-                    type="text"
-                    value={flashcardState.editedFlashcard?.front || ""}
-                    onChange={(e) =>
-                      updateEditedFlashcard("front", e.target.value)
-                    }
-                    className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-800 dark:text-gray-200"
-                  />
-                </div>
-                {flashcard.type !== "cloze" && (
+      {showLoadingState ? (
+        <div className="py-6 flex justify-center">
+          <div className="inline-flex items-center px-4 py-2 font-semibold leading-6 text-sm rounded-md text-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300">
+            <svg
+              className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500 dark:text-blue-300"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            Loading flashcards...
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {wordData.flashcards?.map((flashcard, index) => (
+            <div
+              key={index}
+              className={`border rounded-lg overflow-hidden ${
+                isFlashcardSelected(flashcard)
+                  ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+              }`}
+            >
+              {flashcardState.editingFlashcard &&
+              flashcardState.editingFlashcard.index === index ? (
+                <div className="p-4">
                   <div className="mb-3">
                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Back
+                      Front
                     </label>
                     <input
                       type="text"
-                      value={flashcardState.editedFlashcard?.back || ""}
+                      value={flashcardState.editedFlashcard?.front || ""}
                       onChange={(e) =>
-                        updateEditedFlashcard("back", e.target.value)
+                        updateEditedFlashcard("front", e.target.value)
                       }
                       className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-800 dark:text-gray-200"
                     />
                   </div>
-                )}
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={cancelFlashcardEdit}
-                    className="px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => saveFlashcardEdit(index)}
-                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center p-4">
-                <div
-                  className="flex-1 cursor-pointer"
-                  onClick={() => toggleFlashcard(flashcard, index)}
-                >
-                  <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
-                    {flashcard.front}
-                  </div>
                   {flashcard.type !== "cloze" && (
-                    <div className="text-gray-600 dark:text-gray-400 text-sm">
-                      {flashcard.back}
+                    <div className="mb-3">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Back
+                      </label>
+                      <input
+                        type="text"
+                        value={flashcardState.editedFlashcard?.back || ""}
+                        onChange={(e) =>
+                          updateEditedFlashcard("back", e.target.value)
+                        }
+                        className="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 text-gray-800 dark:text-gray-200"
+                      />
                     </div>
                   )}
-                </div>
-                <div className="flex space-x-2 ml-3">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startEditingFlashcard(index, flashcard, e);
-                    }}
-                    className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
-                    title="Edit flashcard"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={cancelFlashcardEdit}
+                      className="px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => saveFlashcardEdit(index)}
+                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center p-4">
                   <div
-                    className={`${
-                      isFlashcardSelected(flashcard)
-                        ? "text-blue-500 dark:text-blue-400"
-                        : "text-gray-400 dark:text-gray-600"
-                    }`}
+                    className="flex-1 cursor-pointer"
                     onClick={() => toggleFlashcard(flashcard, index)}
                   >
-                    {isFlashcardSelected(flashcard) ? (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    ) : (
+                    <div className="font-medium text-gray-800 dark:text-gray-200 mb-1">
+                      {flashcard.front}
+                    </div>
+                    {flashcard.type !== "cloze" && (
+                      <div className="text-gray-600 dark:text-gray-400 text-sm">
+                        {flashcard.back}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex space-x-2 ml-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditingFlashcard(index, flashcard, e);
+                      }}
+                      className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400"
+                      title="Edit flashcard"
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="h-5 w-5"
@@ -745,17 +745,55 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                         />
                       </svg>
-                    )}
+                    </button>
+                    <div
+                      className={`${
+                        isFlashcardSelected(flashcard)
+                          ? "text-blue-500 dark:text-blue-400"
+                          : "text-gray-400 dark:text-gray-600"
+                      }`}
+                      onClick={() => toggleFlashcard(flashcard, index)}
+                    >
+                      {isFlashcardSelected(flashcard) ? (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
