@@ -21,6 +21,7 @@ prompt:
     ```yaml
     flashcards:
       - type: one of [cloze, basic, reversed]
-        front: >\s<string>
-        back: >\s<string>
+        front: >
+          <string>
+        back: <string>
     ```
