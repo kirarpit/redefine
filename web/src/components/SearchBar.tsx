@@ -64,7 +64,7 @@ export const searchExplanation = async (
 
 // Add a new function to fetch autocomplete suggestions from the backend
 export const fetchSuggestions = async (query: string): Promise<string[]> => {
-  if (!query.trim()) {
+  if (!query.trim() || query.trim().length <= 1) {
     return [];
   }
 
@@ -206,7 +206,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   // Debounced autocomplete
   useEffect(() => {
     const fetchSuggestionsDebounced = async () => {
-      if (!query.trim() || preventSuggestions) {
+      if (!query.trim() || query.trim().length <= 1 || preventSuggestions) {
         setSuggestions([]);
         return;
       }
@@ -477,7 +477,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
         {suggestions && suggestions.length > 0 ? (
           <ul
-            className="absolute z-50 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-auto"
+            className="absolute z-50 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg"
             onMouseMove={handleMouseMove}
             style={{ position: "absolute", top: "100%", left: 0, right: 0 }}
           >

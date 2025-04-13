@@ -154,11 +154,9 @@ const NavTab: React.FC<NavTabProps> = ({ id, label, activeTab, onClick }) => {
 
 const Redefine: React.FC = () => {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
-    console.log("Initializing darkMode state");
     const savedMode = localStorage.getItem("darkMode");
     if (savedMode !== null) {
       const parsedMode = JSON.parse(savedMode);
-      console.log("Using saved dark mode for initial state:", parsedMode);
       return parsedMode;
     }
 
@@ -216,7 +214,6 @@ const Redefine: React.FC = () => {
   const [explanationText, setExplanationText] = useState<string>("");
 
   useEffect(() => {
-    console.log("Dark mode useEffect triggered. Current value:", darkMode);
     if (darkMode) {
       document.documentElement.classList.add("dark");
     } else {

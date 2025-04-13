@@ -10,7 +10,6 @@ export const RECOMMENDED_MODEL_ID = "gemini/gemini-2.0-flash";
 export const fetchModels = async (): Promise<LLMModel[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/llm/models`);
-    console.log("Response", response);
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }

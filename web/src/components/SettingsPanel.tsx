@@ -20,7 +20,6 @@ const savePromptTemplate = async (
   template: string,
   type: PromptType = "general"
 ): Promise<boolean> => {
-  console.log(`Saving ${type} prompt template`, template);
   try {
     const response = await fetch(`${API_BASE_URL}/settings/prompt-template`, {
       method: "POST",
@@ -29,7 +28,6 @@ const savePromptTemplate = async (
       },
       body: JSON.stringify({ template, type }),
     });
-    console.log("Response", response);
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -248,7 +246,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       try {
         // Fetch models
         const modelData = await fetchModels();
-        console.log("Model data", modelData);
         setModels(modelData || []);
 
         // Use a function form of setState to get latest state

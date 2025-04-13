@@ -592,12 +592,6 @@ export const useAnkiService = () => {
 
   // Setup on component mount
   useEffect(() => {
-    // Log visibility setting once on mount, not on every render
-    console.log(
-      "Initial Anki debug panel visibility from settings:",
-      showDebugPanel
-    );
-
     // Initial check on component mount
     refreshAnkiConnection();
 

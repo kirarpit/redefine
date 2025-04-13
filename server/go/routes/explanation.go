@@ -19,12 +19,6 @@ var wordsTrie *RadixTrie
 // Initialize the radix trie
 func init() {
 	wordsTrie = NewRadixTrie()
-
-	// Option 1: Load words from the GitHub URL directly
-	// This might not work if the file is too large or GitHub rate limits
-	// wordsTrie.LoadFromURL("https://raw.githubusercontent.com/dwyl/english-words/master/words.txt")
-
-	// Option 2: Download and save the file locally if it doesn't exist, then load it
 	wordsFilePath := filepath.Join(os.TempDir(), "english-words.txt")
 
 	// Check if the file exists
@@ -127,9 +121,6 @@ func autosuggest(c *gin.Context) {
 		c.JSON(200, []string{})
 		return
 	}
-
-	// Get suggestions using the combined search (limit to 10)
 	suggestions := wordsTrie.FindWords(prefix, 10)
-
 	c.JSON(200, suggestions)
 }

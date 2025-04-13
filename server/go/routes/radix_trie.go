@@ -3,7 +3,6 @@ package routes
 import (
 	"bufio"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -76,45 +75,6 @@ func (rt *RadixTrie) LoadFromFile(filePath string) error {
 	return nil
 }
 
-// LoadFromURL loads words from a URL into the radix tree
-func (rt *RadixTrie) LoadFromURL(url string) error {
-	rt.mutex.Lock()
-	defer rt.mutex.Unlock()
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("failed to fetch words from URL: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("received non-OK response: %d", resp.StatusCode)
-	}
-
-	scanner := bufio.NewScanner(resp.Body)
-	count := 0
-
-	for scanner.Scan() {
-		word := strings.TrimSpace(scanner.Text())
-		if word == "" {
-			continue
-		}
-
-		// Convert to lowercase for case-insensitive search
-		word = strings.ToLower(word)
-		rt.tree.Insert(word, true)
-		rt.words[word] = true
-		count++
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading from URL: %w", err)
-	}
-
-	fmt.Printf("Loaded %d words from URL into radix tree\n", count)
-	return nil
-}
-
 // FindWordsWithPrefix finds all words that start with the given prefix
 func (rt *RadixTrie) FindWordsWithPrefix(prefix string, limit int) []string {
 	rt.mutex.RLock()
@@ -131,8 +91,8 @@ func (rt *RadixTrie) FindWordsWithPrefix(prefix string, limit int) []string {
 	// WalkPrefix walks the tree and finds all keys with the given prefix
 	rt.tree.WalkPrefix(prefix, func(s string, v interface{}) bool {
 		results = append(results, s)
-		// Stop walking if we have hit the limit
-		return len(results) < limit
+		// Return false to continue walking
+		return len(results) >= limit
 	})
 
 	// Ensure we don't return more than the limit
