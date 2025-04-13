@@ -151,6 +151,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isMouseActive, setIsMouseActive] = useState<boolean>(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [preventSuggestions, setPreventSuggestions] = useState<boolean>(false);
 
   // Use the flashcard manager hook
   const flashcardManager = useFlashcardManager(
@@ -205,7 +206,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   // Debounced autocomplete
   useEffect(() => {
     const fetchSuggestionsDebounced = async () => {
-      if (!query.trim()) {
+      if (!query.trim() || preventSuggestions) {
         setSuggestions([]);
         return;
       }
@@ -241,13 +242,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
         abortControllerRef.current.abort();
       }
     };
-  }, [query]);
+  }, [query, preventSuggestions]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setQuery(value);
     setSelectedIndex(null);
     setIsMouseActive(false);
+    // Enable suggestions when the user starts typing again
+    setPreventSuggestions(false);
   };
 
   const handleMouseMove = (): void => {
@@ -256,27 +259,34 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === "Enter") {
-      if (selectedIndex !== null && suggestions[selectedIndex]) {
+      if (
+        selectedIndex !== null &&
+        suggestions &&
+        suggestions.length > 0 &&
+        suggestions[selectedIndex]
+      ) {
         handleSearch(suggestions[selectedIndex].trim());
         setSuggestions([]);
+        setPreventSuggestions(true);
       } else {
         handleSearch(query.trim());
         setSuggestions([]);
+        setPreventSuggestions(true);
       }
     } else if (e.key === "ArrowDown") {
       setSelectedIndex((prevIndex) =>
-        prevIndex === null || prevIndex === suggestions.length - 1
+        prevIndex === null || prevIndex === (suggestions?.length ?? 0) - 1
           ? 0
           : prevIndex + 1
       );
     } else if (e.key === "ArrowUp") {
       setSelectedIndex((prevIndex) =>
         prevIndex === null || prevIndex === 0
-          ? suggestions.length - 1
+          ? (suggestions?.length ?? 0) - 1
           : prevIndex - 1
       );
     } else if (e.key === "Escape") {
-      if (suggestions.length > 0) {
+      if (suggestions && suggestions.length > 0) {
         setSuggestions([]);
       } else {
         (e.target as HTMLInputElement).blur();
@@ -287,6 +297,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const handleSuggestionClick = (suggestion: string): void => {
     handleSearch(suggestion.trim());
     setSuggestions([]);
+    setPreventSuggestions(true);
+  };
+
+  // Disable suggestions when search button is clicked directly
+  const handleSearchButtonClick = (): void => {
+    handleSearch(query.trim());
+    setSuggestions([]);
+    setPreventSuggestions(true);
   };
 
   return (
@@ -411,7 +429,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             disabled={isLoading}
           />
           <button
-            onClick={() => handleSearch(query.trim())}
+            onClick={handleSearchButtonClick}
             className="text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 px-4 transition duration-150 flex items-center justify-center"
             aria-label="Search"
             type="button"
@@ -457,7 +475,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </button>
         </div>
 
-        {suggestions.length > 0 && (
+        {suggestions && suggestions.length > 0 ? (
           <ul
             className="absolute z-10 w-full mt-1 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 shadow-lg max-h-60 overflow-auto"
             onMouseMove={handleMouseMove}
@@ -478,7 +496,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               </li>
             ))}
           </ul>
-        )}
+        ) : null}
       </div>
 
       {wordData && (
@@ -530,21 +548,27 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 {streamedTextComponent}
               </div>
 
-              {wordData.quotes && wordData.quotes.length > 0 && (
+              {wordData.quotes && wordData.quotes.length > 0 ? (
                 <div className="text-gray-600 dark:text-gray-400 italic mb-6 pl-4 border-l-2 border-gray-200 dark:border-gray-600">
                   {wordData.quotes.map((quote, index) => (
                     <p key={index}>{quote}</p>
                   ))}
                 </div>
-              )}
+              ) : null}
 
-              {wordData.type
+              {wordData.type &&
+              wordData.type
                 .toLowerCase()
                 .match(
                   /(location|region|place|area|city|country|state|province)/
-                ) && <LocationMap location={wordData.query} />}
+                ) ? (
+                <LocationMap location={wordData.query} />
+              ) : null}
 
-              {wordData.related_items && wordData.related_items.length > 0 && (
+              {wordData &&
+              "related_items" in wordData &&
+              wordData.related_items &&
+              wordData.related_items.length > 0 ? (
                 <div className="mb-6">
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                     Related Items:
@@ -561,7 +585,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* Flashcard list component */}
               <FlashcardList
