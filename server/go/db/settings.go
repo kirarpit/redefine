@@ -2,21 +2,30 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 )
 
-const promptTemplateKey = "prompt_template"
+// GetPromptTemplateKey returns the key used for storing a prompt template of a specific type
+func GetPromptTemplateKey(promptType string) string {
+	if promptType == "" {
+		promptType = "general"
+	}
+	return fmt.Sprintf("prompt_template_%s", promptType)
+}
 
-// GetPromptTemplate retrieves the prompt template from the database
-func GetPromptTemplate() (string, error) {
+// GetPromptTemplate retrieves the prompt template of the specified type from the database
+func GetPromptTemplate(promptType string) (string, error) {
 	db := GetDB()
 	var template string
+
+	promptKey := GetPromptTemplateKey(promptType)
 
 	err := db.QueryRow(`
 		SELECT value 
 		FROM app_settings 
 		WHERE key = ?
-	`, promptTemplateKey).Scan(&template)
+	`, promptKey).Scan(&template)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -28,16 +37,17 @@ func GetPromptTemplate() (string, error) {
 	return template, nil
 }
 
-// SavePromptTemplate saves or updates the prompt template in the database
-func SavePromptTemplate(template string) error {
+// SavePromptTemplate saves or updates the prompt template of the specified type in the database
+func SavePromptTemplate(template string, promptType string) error {
 	db := GetDB()
 
 	// Trim whitespace and newline characters from the template
 	template = strings.TrimSpace(template)
+	promptKey := GetPromptTemplateKey(promptType)
 
 	// Check if template already exists
 	var exists bool
-	err := db.QueryRow("SELECT 1 FROM app_settings WHERE key = ?", promptTemplateKey).Scan(&exists)
+	err := db.QueryRow("SELECT 1 FROM app_settings WHERE key = ?", promptKey).Scan(&exists)
 
 	if err != nil && err != sql.ErrNoRows {
 		return err
@@ -48,14 +58,14 @@ func SavePromptTemplate(template string) error {
 		_, err = db.Exec(`
 			INSERT INTO app_settings (key, value)
 			VALUES (?, ?)
-		`, promptTemplateKey, template)
+		`, promptKey, template)
 	} else {
 		// Template exists, update it
 		_, err = db.Exec(`
 			UPDATE app_settings 
 			SET value = ?
 			WHERE key = ?
-		`, template, promptTemplateKey)
+		`, template, promptKey)
 	}
 
 	return err

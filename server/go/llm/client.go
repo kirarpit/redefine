@@ -83,7 +83,7 @@ func (c *Client) CallAndParseYAML(prompt string) (*types.ExplanationEntry, error
 }
 
 // GenerateExplanation generates an explanation for the given query
-func GenerateExplanation(query string, modelID string, getModel ModelGetter, getPrompt PromptGetter) (*types.ExplanationEntry, error) {
+func GenerateExplanation(query string, modelID string, getModel ModelGetter, getPrompt PromptGetter, promptType string) (*types.ExplanationEntry, error) {
 	// Get model from database
 	model, err := getModel(modelID)
 	if err != nil {
@@ -93,17 +93,17 @@ func GenerateExplanation(query string, modelID string, getModel ModelGetter, get
 		return nil, fmt.Errorf("model with ID %s not found", modelID)
 	}
 
-	// Get prompt template
-	promptTemplate, err := getPrompt()
+	// Get prompt template for the specific type
+	promptTemplate, err := getPrompt(promptType)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get prompt template: %w", err)
+		return nil, fmt.Errorf("failed to get %s prompt template: %w", promptType, err)
 	}
 
 	// Replace query in prompt template
 	prompt := strings.Replace(promptTemplate, "{query}", query, -1)
 
 	// Check cache
-	cacheKey := fmt.Sprintf("%s:%s", modelID, prompt)
+	cacheKey := fmt.Sprintf("%s:%s:%s", modelID, promptType, prompt)
 	if entry, ok := responseCache[cacheKey]; ok {
 		return &entry, nil
 	}
@@ -130,7 +130,7 @@ func GenerateExplanation(query string, modelID string, getModel ModelGetter, get
 type ModelGetter func(id string) (*types.LLMModel, error)
 
 // PromptGetter is a function type for retrieving prompt templates
-type PromptGetter func() (string, error)
+type PromptGetter func(promptType string) (string, error)
 
 // TestPrompt tests a prompt template with the given model
 func TestPrompt(model *types.LLMModel, prompt string, processYAML bool) (string, error) {

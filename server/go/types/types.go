@@ -37,6 +37,7 @@ type LLMModel struct {
 // PromptTemplate represents a prompt template
 type PromptTemplate struct {
 	Template string `json:"template"`
+	Type     string `json:"type,omitempty"` // Can be "general" or "anki"
 }
 
 // AutosuggestResponse represents the response for autosuggest API

@@ -35,7 +35,7 @@ func setupExplanationRoutes(api *gin.RouterGroup) {
 	explainGroup.GET("/autosuggest", autosuggest)
 }
 
-// search handles the search API endpoint
+// search handles the main search API endpoint
 func search(c *gin.Context) {
 	query := c.Query("q")
 	if query == "" {
@@ -49,12 +49,19 @@ func search(c *gin.Context) {
 		return
 	}
 
+	// Get prompt type from query parameters (default to "general")
+	promptType := c.Query("promptType")
+	if promptType == "" {
+		promptType = "general"
+	}
+
 	// Generate explanation using LLM
 	explanation, err := llm.GenerateExplanation(
 		query,
 		modelID,
 		db.GetLLMModelByID,
-		func() (string, error) { return db.GetPromptTemplate() },
+		func(pType string) (string, error) { return db.GetPromptTemplate(pType) },
+		promptType,
 	)
 	if err != nil {
 		log.Printf("Error generating explanation: %v", err)

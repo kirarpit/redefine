@@ -228,9 +228,7 @@ const Redefine: React.FC = () => {
 
     setQuery(searchQuery);
     setIsStreaming(true);
-    // We don't need to set streamedText anymore
-    // setStreamedText("");
-    setExplanationText(""); // Reset explanation text instead
+    setExplanationText("");
 
     // Set loading states
     setIsLoading(true);
@@ -244,12 +242,20 @@ const Redefine: React.FC = () => {
         return;
       }
 
-      const data = await searchExplanation(searchQuery, modelId);
+      // Make two parallel API calls - one for general explanation and one for Anki flashcards
+      const [generalData, ankiData] = await Promise.all([
+        searchExplanation(searchQuery, modelId, "general"),
+        searchExplanation(searchQuery, modelId, "anki"),
+      ]);
 
-      setWordData(data);
-      // Instead of streaming explanation, we just store the text
-      // streamExplanation(data.explanation);
-      setExplanationText(data.explanation);
+      // Merge the flashcards from the ankiData with the general explanation data
+      const mergedData = {
+        ...generalData,
+        flashcards: ankiData.flashcards || [],
+      };
+
+      setWordData(mergedData);
+      setExplanationText(generalData.explanation);
 
       console.log("searchQuery", searchQuery);
       setSearchHistory((prev) => {
@@ -267,7 +273,6 @@ const Redefine: React.FC = () => {
         query: searchQuery,
         error: true,
       });
-      // setStreamedText("");
       setExplanationText("");
       setNotification({
         message: "Failed to retrieve explanation. Please try again later.",

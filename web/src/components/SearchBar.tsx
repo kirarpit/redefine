@@ -35,13 +35,16 @@ const LocationMap: React.FC<{ location: string }> = ({ location }) => {
 
 export const searchExplanation = async (
   query: string,
-  modelId: string
+  modelId: string,
+  promptType: string = "general"
 ): Promise<ExplanationEntry> => {
   try {
     const response = await fetch(
       `${API_BASE_URL}/explain/search?q=${encodeURIComponent(
         query
-      )}&modelId=${encodeURIComponent(modelId)}`
+      )}&modelId=${encodeURIComponent(modelId)}&promptType=${encodeURIComponent(
+        promptType
+      )}`
     );
 
     if (!response.ok) {
