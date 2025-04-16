@@ -105,7 +105,7 @@ func BenchmarkProviderInit(b *testing.B) {
 		b.ResetTimer()
 		printMemStats("Before SimpleProvider")
 		for i := 0; i < b.N; i++ {
-			provider := NewSimpleProvider(0) // No limit
+			provider := NewSimpleProvider(1000000) // Using a large number instead of 0, which defaults to 10K
 			if err := provider.LoadData(benchFile); err != nil {
 				b.Fatalf("Failed to load benchmark data: %v", err)
 			}
@@ -161,7 +161,7 @@ func BenchmarkProviderQuery(b *testing.B) {
 		b.Fatalf("Failed to load benchmark data for RadixProvider: %v", err)
 	}
 
-	simpleProvider := NewSimpleProvider(0)
+	simpleProvider := NewSimpleProvider(1000000) // Using a large number instead of 0, which defaults to 10K
 	if err := simpleProvider.LoadData(benchFile); err != nil {
 		b.Fatalf("Failed to load benchmark data for SimpleProvider: %v", err)
 	}
@@ -237,7 +237,7 @@ func TestMemoryUsage(t *testing.T) {
 
 	// Test SimpleProvider
 	func() {
-		provider := NewSimpleProvider(0)
+		provider := NewSimpleProvider(1000000) // Using a large number instead of 0, which defaults to 10K
 		if err := provider.LoadData(benchFile); err != nil {
 			t.Fatalf("Failed to load benchmark data: %v", err)
 		}

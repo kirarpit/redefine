@@ -30,13 +30,7 @@ func NewProvider(providerType string) (Provider, error) {
 		// A smaller version with only 1,000 words
 		return NewSimpleProvider(1000), nil
 	case "mmap":
-		// Our new memory-mapped provider for low RAM usage
 		return NewMmapProvider(), nil
-	// Add more implementations here as needed:
-	// case "database":
-	//    return NewDatabaseProvider(...), nil
-	// case "external_api":
-	//    return NewExternalAPIProvider(...), nil
 	default:
 		// If an invalid provider type is specified, return an error
 		if providerType != "" {
@@ -44,7 +38,7 @@ func NewProvider(providerType string) (Provider, error) {
 		}
 
 		// Default to RadixProvider as it's the current implementation
-		return NewRadixProvider(), nil
+		return NewMmapProvider(), nil
 	}
 }
 
