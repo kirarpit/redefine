@@ -3,11 +3,13 @@ package autosuggest
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -17,6 +19,12 @@ const (
 	WordLen      = 24
 	MaxPrefixLen = 4
 )
+
+// IndexRecord represents one prefix index entry.
+type IndexRecord struct {
+	Prefix     string
+	Start, End uint64
+}
 
 // GetTempDir returns the appropriate temp directory based on environment
 func GetTempDir() string {
@@ -29,18 +37,18 @@ func GetTempDir() string {
 // MmapProvider is an implementation of Provider using memory mapped files
 // for low RAM consumption while maintaining fast lookup times
 type MmapProvider struct {
-	dataFile    *os.File
-	dataMmap    []byte
-	prefixIndex map[string][2]int64
-	longWords   map[string]string
-	mutex       sync.RWMutex
-	initialized bool
+	dataFile     *os.File
+	dataMmap     []byte
+	indexData    []byte // Compressed index data
+	indexOffsets []int  // Offset table for the compressed index
+	longWords    map[string]string
+	mutex        sync.RWMutex
+	initialized  bool
 }
 
 // NewMmapProvider creates a new MmapProvider for autosuggest
 func NewMmapProvider() *MmapProvider {
 	return &MmapProvider{
-		prefixIndex: make(map[string][2]int64),
 		longWords:   make(map[string]string),
 		initialized: false,
 	}
@@ -57,7 +65,7 @@ func (mp *MmapProvider) FindSuggestions(query string, limit int) []string {
 	return mp.searchWithPrefix(query, limit)
 }
 
-// searchWithPrefix searches for words with the given prefix using the prefix index
+// searchWithPrefix searches for words with the given prefix using the binary index
 func (mp *MmapProvider) searchWithPrefix(prefix string, limit int) []string {
 	mp.mutex.RLock()
 	defer mp.mutex.RUnlock()
@@ -66,17 +74,24 @@ func (mp *MmapProvider) searchWithPrefix(prefix string, limit int) []string {
 		return []string{}
 	}
 
-	// Get prefix range from index
-	key := prefix[:min(len(prefix), MaxPrefixLen)]
-	rng, ok := mp.prefixIndex[key]
-	if !ok {
+	// Use only up to MaxPrefixLen characters for the search
+	searchPrefix := prefix[:min(len(prefix), MaxPrefixLen)]
+
+	// Query the compressed index
+	rec, err := mp.queryCompressedIndex(searchPrefix)
+	if err != nil {
 		return []string{}
 	}
 
-	start := rng[0] / WordLen
-	end := rng[1] / WordLen
+	// To avoid duplicates, use a map to track already seen words
+	seen := make(map[string]bool)
+	var matches []string
 
-	// Binary search for the start position of the prefix
+	// Calculate the word positions
+	start := int64(rec.Start) / WordLen
+	end := int64(rec.End) / WordLen
+
+	// Binary search for the start position of the full prefix
 	low, high := start, end
 	for low < high {
 		mid := (low + high) / 2
@@ -89,7 +104,6 @@ func (mp *MmapProvider) searchWithPrefix(prefix string, limit int) []string {
 	}
 
 	// Linear scan from the position found by binary search
-	var matches []string
 	for i := low; i < end; i++ {
 		word := mp.getWordAt(i)
 		if len(word) < len(prefix) || word[:len(prefix)] != prefix {
@@ -104,9 +118,13 @@ func (mp *MmapProvider) searchWithPrefix(prefix string, limit int) []string {
 			}
 		}
 
-		matches = append(matches, word)
-		if len(matches) >= limit {
-			break
+		// Only add the word if we haven't seen it yet
+		if !seen[word] {
+			matches = append(matches, word)
+			seen[word] = true
+			if len(matches) >= limit {
+				break
+			}
 		}
 	}
 
@@ -148,7 +166,7 @@ func (mp *MmapProvider) LoadData(sourcePath string) error {
 
 	// Generate file paths for the processed data
 	binaryFile := filepath.Join(GetTempDir(), "words_fixed.bin")
-	indexFile := filepath.Join(GetTempDir(), "prefix_index.json")
+	indexFile := filepath.Join(GetTempDir(), "prefix_index.bin")
 	longWordsFile := filepath.Join(GetTempDir(), "long_words.json")
 
 	// Initialize maps for indexing
@@ -220,9 +238,12 @@ func (mp *MmapProvider) LoadData(sourcePath string) error {
 		return fmt.Errorf("error reading from sorted file: %w", err)
 	}
 
-	if err := mp.saveJSON(indexFile, prefixIndex); err != nil {
-		return err
+	// Compress the prefix index and save it to disk
+	compressedIndex := mp.compressIndex(prefixIndex)
+	if err := os.WriteFile(indexFile, compressedIndex, 0644); err != nil {
+		return fmt.Errorf("failed to write compressed index: %w", err)
 	}
+
 	if err := mp.saveJSON(longWordsFile, longWords); err != nil {
 		return err
 	}
@@ -231,9 +252,18 @@ func (mp *MmapProvider) LoadData(sourcePath string) error {
 		return err
 	}
 
-	if err := mp.loadJSON(indexFile, &mp.prefixIndex); err != nil {
-		return err
+	// Load the compressed index
+	mp.indexData, err = os.ReadFile(indexFile)
+	if err != nil {
+		return fmt.Errorf("failed to read compressed index: %w", err)
 	}
+
+	// Build the offset table for efficient binary search
+	mp.indexOffsets, err = mp.buildOffsetTable(mp.indexData)
+	if err != nil {
+		return fmt.Errorf("failed to build offset table: %w", err)
+	}
+
 	if err := mp.loadJSON(longWordsFile, &mp.longWords); err != nil {
 		return err
 	}
@@ -314,6 +344,150 @@ func (mp *MmapProvider) loadJSON(filePath string, data interface{}) error {
 	return nil
 }
 
+// compressIndex converts an index map (key → [start, end]) into a compressed byte slice.
+// Each entry is stored as:
+//
+//	[prefix length (1 byte)] [prefix bytes] [start offset as varint] [range length as varint]
+func (mp *MmapProvider) compressIndex(idx map[string][2]int64) []byte {
+	// Convert the map to a slice for a consistent ordering.
+	records := make([]IndexRecord, 0, len(idx))
+	for k, v := range idx {
+		records = append(records, IndexRecord{
+			Prefix: k,
+			Start:  uint64(v[0]),
+			End:    uint64(v[1]),
+		})
+	}
+	// Sort records by prefix to have a reproducible layout.
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].Prefix < records[j].Prefix
+	})
+
+	var buf bytes.Buffer
+
+	// Write the number of records first (as a fixed 8-byte little endian uint64).
+	// This allows you to know how many records are stored when decoding.
+	err := binary.Write(&buf, binary.LittleEndian, uint64(len(records)))
+	if err != nil {
+		panic(err)
+	}
+
+	// Encode each record.
+	for _, rec := range records {
+		// Write a single byte for the length of the prefix.
+		prefixLen := byte(len(rec.Prefix))
+		buf.WriteByte(prefixLen)
+		// Write the prefix bytes.
+		buf.WriteString(rec.Prefix)
+
+		// Write the start offset using Uvarint.
+		var startBuf [binary.MaxVarintLen64]byte
+		n := binary.PutUvarint(startBuf[:], rec.Start)
+		buf.Write(startBuf[:n])
+
+		// Write the range length (i.e. rec.End - rec.Start) using Uvarint.
+		var rangeBuf [binary.MaxVarintLen64]byte
+		m := binary.PutUvarint(rangeBuf[:], rec.End-rec.Start)
+		buf.Write(rangeBuf[:m])
+	}
+	return buf.Bytes()
+}
+
+// readRecord reads one record from the compressed index (compData)
+// starting at offset "off". It returns the decoded record,
+// the next offset in compData (after this record), and an error if any.
+func (mp *MmapProvider) readRecord(compData []byte, off int) (rec IndexRecord, next int, err error) {
+	if off >= len(compData) {
+		return rec, off, fmt.Errorf("offset out of bounds")
+	}
+	// Read prefix length (1 byte)
+	prefixLen := int(compData[off])
+	off++
+	if off+prefixLen > len(compData) {
+		return rec, off, fmt.Errorf("not enough bytes for prefix")
+	}
+	rec.Prefix = string(compData[off : off+prefixLen])
+	off += prefixLen
+
+	// Read start offset encoded as Uvarint.
+	start, n := binary.Uvarint(compData[off:])
+	if n <= 0 {
+		return rec, off, fmt.Errorf("failed reading start offset")
+	}
+	off += n
+
+	// Read range length (i.e. end - start) encoded as Uvarint.
+	rangeLen, m := binary.Uvarint(compData[off:])
+	if m <= 0 {
+		return rec, off, fmt.Errorf("failed reading range length")
+	}
+	off += m
+
+	rec.Start = start
+	rec.End = start + rangeLen
+	return rec, off, nil
+}
+
+// buildOffsetTable scans the compressed index and returns a slice of offsets
+// (one per record) pointing to the start of each record in compData.
+// We assume the first 8 bytes of compData encode the number of records.
+func (mp *MmapProvider) buildOffsetTable(compData []byte) ([]int, error) {
+	if len(compData) < 8 {
+		return nil, fmt.Errorf("data too short for header")
+	}
+	numRecords := int(binary.LittleEndian.Uint64(compData[:8]))
+	offsets := make([]int, 0, numRecords)
+	off := 8
+	for i := 0; i < numRecords; i++ {
+		offsets = append(offsets, off)
+		_, next, err := mp.readRecord(compData, off)
+		if err != nil {
+			return nil, err
+		}
+		off = next
+	}
+	return offsets, nil
+}
+
+// queryCompressedIndex uses the offset table to perform a binary search on
+// the compressed index for a given searchPrefix. It decompresses only the records
+// needed to answer the query.
+func (mp *MmapProvider) queryCompressedIndex(searchPrefix string) (IndexRecord, error) {
+	if len(mp.indexOffsets) == 0 {
+		return IndexRecord{}, fmt.Errorf("offset table not built")
+	}
+
+	// Binary search for the first record whose prefix is >= searchPrefix.
+	low, high := 0, len(mp.indexOffsets)
+	for low < high {
+		mid := (low + high) / 2
+		rec, _, err := mp.readRecord(mp.indexData, mp.indexOffsets[mid])
+		if err != nil {
+			return IndexRecord{}, err
+		}
+		if rec.Prefix < searchPrefix {
+			low = mid + 1
+		} else {
+			high = mid
+		}
+	}
+
+	// Starting from "low", decompress records until the prefix no longer matches.
+	var result IndexRecord
+	for i := low; i < len(mp.indexOffsets); i++ {
+		rec, _, err := mp.readRecord(mp.indexData, mp.indexOffsets[i])
+		if err != nil {
+			return IndexRecord{}, err
+		}
+		if strings.HasPrefix(rec.Prefix, searchPrefix) {
+			result = rec
+			break
+		}
+	}
+
+	return result, nil
+}
+
 // cleanup releases resources used by the provider
 func (mp *MmapProvider) cleanup() {
 	if mp.dataMmap != nil {
@@ -326,7 +500,8 @@ func (mp *MmapProvider) cleanup() {
 		mp.dataFile = nil
 	}
 
-	mp.prefixIndex = make(map[string][2]int64)
+	mp.indexData = nil
+	mp.indexOffsets = nil
 	mp.longWords = make(map[string]string)
 	mp.initialized = false
 }
