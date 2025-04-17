@@ -2,9 +2,9 @@ package autosuggest
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"redefine/server/types"
-	"runtime"
 )
 
 // Provider is the interface for autosuggest providers
@@ -19,10 +19,9 @@ type Provider interface {
 	LoadData(source string) error
 }
 
-// GetDefaultWordsPath returns the path to the default words.txt file in the repository
 func GetDefaultWordsPath() string {
-	_, filename, _, _ := runtime.Caller(0)
-	return filepath.Join(filepath.Dir(filename), "data", "words.txt")
+	rootDir, _ := os.Getwd()
+	return filepath.Join(rootDir, "autosuggest/data/words.txt")
 }
 
 // NewProvider creates a new autosuggest provider based on the provider type

@@ -46,6 +46,7 @@ ENV TZ="UTC"
 
 COPY --from=backend-build /app/server/redefine-server .
 COPY --from=backend-build /app/server/prompts ./prompts
+COPY --from=backend-build /app/server/autosuggest/data ./autosuggest/data
 COPY --from=frontend-build /app/web/build ./static
 
 # Create data directory and set proper permissions
