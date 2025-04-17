@@ -17,7 +17,7 @@ import (
 
 const (
 	WordLen      = 24
-	MaxPrefixLen = 4
+	MaxPrefixLen = 2
 )
 
 // IndexRecord represents one prefix index entry.
