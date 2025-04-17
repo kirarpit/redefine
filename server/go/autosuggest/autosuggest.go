@@ -2,7 +2,9 @@ package autosuggest
 
 import (
 	"fmt"
+	"path/filepath"
 	"redefine/server/types"
+	"runtime"
 )
 
 // Provider is the interface for autosuggest providers
@@ -17,18 +19,18 @@ type Provider interface {
 	LoadData(source string) error
 }
 
+// GetDefaultWordsPath returns the path to the default words.txt file in the repository
+func GetDefaultWordsPath() string {
+	_, filename, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(filename), "data", "words.txt")
+}
+
 // NewProvider creates a new autosuggest provider based on the provider type
 // This is a factory function that returns a concrete implementation of the interface
 func NewProvider(providerType string) (Provider, error) {
 	switch providerType {
 	case "radix":
 		return NewRadixProvider(), nil
-	case "simple":
-		// Default to 10,000 words for the simple provider
-		return NewSimpleProvider(10000), nil
-	case "simple-small":
-		// A smaller version with only 1,000 words
-		return NewSimpleProvider(1000), nil
 	case "mmap":
 		return NewMmapProvider(), nil
 	default:
@@ -37,7 +39,7 @@ func NewProvider(providerType string) (Provider, error) {
 			return nil, fmt.Errorf("unsupported autosuggest provider type: %s", providerType)
 		}
 
-		// Default to RadixProvider as it's the current implementation
+		// Default to MmapProvider
 		return NewMmapProvider(), nil
 	}
 }

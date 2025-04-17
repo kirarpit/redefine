@@ -5,21 +5,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"syscall"
 )
 
 const (
-	WordLen = 24
-	TempDir = "/data/autosuggest/mmap"
-	// TempDir = "/tmp/redefine-autosuggest"
+	WordLen      = 24
+	MaxPrefixLen = 4
 )
+
+// GetTempDir returns the appropriate temp directory based on environment
+func GetTempDir() string {
+	if os.Getenv("GIN_MODE") == "release" {
+		return "/data/autosuggest/mmap"
+	}
+	return "/tmp/redefine-autosuggest"
+}
 
 // MmapProvider is an implementation of Provider using memory mapped files
 // for low RAM consumption while maintaining fast lookup times
@@ -49,10 +54,6 @@ func (mp *MmapProvider) FindSuggestions(query string, limit int) []string {
 		return []string{}
 	}
 
-	if len(query) < 2 {
-		return []string{}
-	}
-
 	return mp.searchWithPrefix(query, limit)
 }
 
@@ -66,7 +67,7 @@ func (mp *MmapProvider) searchWithPrefix(prefix string, limit int) []string {
 	}
 
 	// Get prefix range from index
-	key := prefix[:2]
+	key := prefix[:min(len(prefix), MaxPrefixLen)]
 	rng, ok := mp.prefixIndex[key]
 	if !ok {
 		return []string{}
@@ -119,11 +120,7 @@ func (mp *MmapProvider) getWordAt(index int64) string {
 	if end > int64(len(mp.dataMmap)) {
 		end = int64(len(mp.dataMmap))
 	}
-
-	// Extract the word from the memory mapped file
 	buf := mp.dataMmap[start:end]
-
-	// Trim any trailing zeros or spaces
 	return string(bytes.TrimSpace(buf))
 }
 
@@ -136,90 +133,23 @@ func padWord(word string) string {
 }
 
 // LoadData implements the Provider interface
-func (mp *MmapProvider) LoadData(source string) error {
-	// Determine if the source is a file or URL
-	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
-		localFile, err := mp.downloadToLocal(source)
-		if err != nil {
-			return err
-		}
-		source = localFile
-	}
-
-	// Process the source file to create the binary format and index
-	return mp.processSourceFile(source)
-}
-
-// downloadToLocal downloads a file from a URL to a local file
-func (mp *MmapProvider) downloadToLocal(url string) (string, error) {
-	// Create the temp directory if it doesn't exist
-	if err := os.MkdirAll(TempDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create temp directory: %w", err)
-	}
-
-	// Generate a temporary file path
-	tempFile := filepath.Join(TempDir, "words.txt")
-
-	// Download the file
-	fmt.Printf("Downloading words from %s to %s\n", url, tempFile)
-
-	// Use HTTP client directly to save memory instead of using SimpleProvider
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch URL: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Check server response
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	// Create the output file
-	out, err := os.Create(tempFile)
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer out.Close()
-
-	// Stream the data from response to file
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		word := strings.TrimSpace(scanner.Text())
-		if word == "" {
-			continue
-		}
-
-		// Write directly to file
-		if _, err := out.WriteString(strings.ToLower(word) + "\n"); err != nil {
-			return "", fmt.Errorf("failed to write to temp file: %w", err)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("error reading from URL: %w", err)
-	}
-
-	return tempFile, nil
-}
-
-// processSourceFile processes the source file to create the binary format and index
-func (mp *MmapProvider) processSourceFile(sourcePath string) error {
+func (mp *MmapProvider) LoadData(sourcePath string) error {
 	mp.mutex.Lock()
 	defer mp.mutex.Unlock()
 
-	// Clean up any existing resources
-	mp.cleanup()
+	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+		return fmt.Errorf("source file does not exist: %s", sourcePath)
+	}
 
-	// Create the temp directory if it doesn't exist
-	if err := os.MkdirAll(TempDir, 0755); err != nil {
+	mp.cleanup()
+	if err := os.MkdirAll(GetTempDir(), 0755); err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
 	// Generate file paths for the processed data
-	binaryFile := filepath.Join(TempDir, "words_fixed.bin")
-	indexFile := filepath.Join(TempDir, "prefix_index.json")
-	longWordsFile := filepath.Join(TempDir, "long_words.json")
+	binaryFile := filepath.Join(GetTempDir(), "words_fixed.bin")
+	indexFile := filepath.Join(GetTempDir(), "prefix_index.json")
+	longWordsFile := filepath.Join(GetTempDir(), "long_words.json")
 
 	// Initialize maps for indexing
 	prefixIndex := make(map[string][2]int64)
@@ -230,7 +160,7 @@ func (mp *MmapProvider) processSourceFile(sourcePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to sort words: %w", err)
 	}
-	defer os.Remove(sortedFile) // Clean up temporary sorted file when done
+	defer os.Remove(sortedFile)
 
 	// Open the sorted file
 	in, err := os.Open(sortedFile)
@@ -261,27 +191,20 @@ func (mp *MmapProvider) processSourceFile(sourcePath string) error {
 			continue
 		}
 
-		// Pad the word to the fixed length
-		padded := padWord(word)
-
-		// Handle long words
-		if len(word) > WordLen {
-			longWords[padded] = word
-		}
-
-		// Update the prefix index for words with at least 2 chars
-		if len(word) >= 2 {
-			prefix := word[:2]
-			if prefix != currentPrefix {
-				if currentPrefix != "" {
-					prefixIndex[currentPrefix] = [2]int64{start, pos}
-				}
-				currentPrefix = prefix
-				start = pos
+		// For each prefix (from length 1 to n) update the index.
+		for l := 1; l <= min(len(word), MaxPrefixLen); l++ {
+			pfx := word[:l]
+			if rec, ok := prefixIndex[pfx]; ok {
+				prefixIndex[pfx] = [2]int64{rec[0], pos + WordLen}
+			} else {
+				prefixIndex[pfx] = [2]int64{pos, pos + WordLen}
 			}
 		}
 
-		// Write the padded word to the binary file
+		padded := padWord(word)
+		if len(word) > WordLen {
+			longWords[padded] = word
+		}
 		out.WriteString(padded)
 		pos += WordLen
 		count++
@@ -297,29 +220,23 @@ func (mp *MmapProvider) processSourceFile(sourcePath string) error {
 		return fmt.Errorf("error reading from sorted file: %w", err)
 	}
 
-	// Save the index and long words map to JSON files
 	if err := mp.saveJSON(indexFile, prefixIndex); err != nil {
 		return err
 	}
-
 	if err := mp.saveJSON(longWordsFile, longWords); err != nil {
 		return err
 	}
 
-	// Memory map the binary file
 	if err := mp.mmapFile(binaryFile); err != nil {
 		return err
 	}
 
-	// Load the index and long words map
 	if err := mp.loadJSON(indexFile, &mp.prefixIndex); err != nil {
 		return err
 	}
-
 	if err := mp.loadJSON(longWordsFile, &mp.longWords); err != nil {
 		return err
 	}
-
 	mp.initialized = true
 	fmt.Printf("Loaded %d words into memory-mapped provider\n", count)
 	return nil
@@ -327,67 +244,10 @@ func (mp *MmapProvider) processSourceFile(sourcePath string) error {
 
 // externalSort performs an external sort on the input file to minimize memory usage
 func (mp *MmapProvider) externalSort(inputFile string) (string, error) {
-	// Create a temporary file for the sorted output
-	sortedFile := filepath.Join(TempDir, "words_sorted.txt")
-
-	// Use the system's sort command for efficiency
+	sortedFile := filepath.Join(GetTempDir(), "words_sorted.txt")
 	cmd := exec.Command("sort", "-o", sortedFile, inputFile)
 	err := cmd.Run()
-	if err != nil {
-		// Fallback to in-memory sort if external sort fails
-		return mp.inMemorySort(inputFile)
-	}
-
-	return sortedFile, nil
-}
-
-// inMemorySort is a fallback method that sorts in memory if external sort fails
-func (mp *MmapProvider) inMemorySort(inputFile string) (string, error) {
-	// Create a temporary file for the sorted output
-	sortedFile := filepath.Join(TempDir, "words_sorted.txt")
-
-	// Open input file
-	in, err := os.Open(inputFile)
-	if err != nil {
-		return "", fmt.Errorf("failed to open input file: %w", err)
-	}
-	defer in.Close()
-
-	// Read words into a slice for sorting
-	var words []string
-	scanner := bufio.NewScanner(in)
-	for scanner.Scan() {
-		word := strings.ToLower(strings.TrimSpace(scanner.Text()))
-		if word != "" {
-			words = append(words, word)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("error reading input file: %w", err)
-	}
-
-	// Sort words
-	fmt.Printf("Sorting %d words lexicographically in memory...\n", len(words))
-	sort.Strings(words)
-
-	// Write sorted words to output file
-	out, err := os.Create(sortedFile)
-	if err != nil {
-		return "", fmt.Errorf("failed to create sorted file: %w", err)
-	}
-	defer out.Close()
-
-	for _, word := range words {
-		if _, err := out.WriteString(word + "\n"); err != nil {
-			return "", fmt.Errorf("failed to write to sorted file: %w", err)
-		}
-	}
-
-	// Clear the words slice to free memory
-	words = nil
-
-	return sortedFile, nil
+	return sortedFile, err
 }
 
 // mmapFile memory maps the binary file

@@ -25,14 +25,14 @@ func init() {
 	if err != nil {
 		log.Printf("Failed to create autosuggest provider: %v. Using default provider.", err)
 		autosuggestProvider, _ = autosuggest.NewProvider("") // Use default
-	} else {
+	} else if providerType != "" {
 		log.Printf("Using autosuggest provider: %s", providerType)
 	}
 
-	// Get the data source from environment variable or use default
+	// Get the data source from environment variable or use default local file
 	dataSource := os.Getenv("AUTOSUGGEST_DATA_SOURCE")
 	if dataSource == "" {
-		dataSource = "https://raw.githubusercontent.com/dwyl/english-words/master/words.txt"
+		dataSource = autosuggest.GetDefaultWordsPath()
 	}
 
 	// Load words from the data source
