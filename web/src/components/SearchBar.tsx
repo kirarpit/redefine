@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, ChangeEvent, useCallback } from "react";
 import { ExplanationEntry, Flashcard } from "../types";
-import { useFlashcardManager, FlashcardList } from "./Flashcard";
+import { FlashcardList } from "./Flashcard";
+import { useFlashcardManager } from "../hooks/useFlashcardManager";
 import { API_BASE_URL } from "../config";
 
 // Simple LocationMap component
