@@ -1,14 +1,11 @@
 package db
 
-import (
-	"redefine/server/types"
-)
+import "redefine/server/types"
 
-// GetFlashcards retrieves all flashcards from the database
 func GetFlashcards() ([]types.Flashcard, error) {
 	db := GetDB()
 	rows, err := db.Query(`
-		SELECT query, front, back, exported_at 
+		SELECT query, front, back, exported_at
 		FROM flashcards
 	`)
 	if err != nil {
@@ -32,20 +29,16 @@ func GetFlashcards() ([]types.Flashcard, error) {
 	return flashcards, nil
 }
 
-// AddFlashcard adds a new flashcard to the database
 func AddFlashcard(flashcard types.Flashcard) (*types.Flashcard, error) {
-	// Check if flashcard already exists
 	exists, err := FlashcardExists(flashcard.Front, flashcard.Back, flashcard.Query)
 	if err != nil {
 		return nil, err
 	}
 
-	// If flashcard already exists, return it without inserting
 	if exists {
 		return &flashcard, nil
 	}
 
-	// Flashcard doesn't exist, so insert it
 	db := GetDB()
 	result, err := db.Exec(`
 		INSERT INTO flashcards (query, front, back, exported_at)
@@ -60,18 +53,15 @@ func AddFlashcard(flashcard types.Flashcard) (*types.Flashcard, error) {
 		return nil, err
 	}
 
-	// Flashcard ID is not used in the frontend, just confirming insertion succeeded
 	_ = id
 
-	// Return the added flashcard
 	return &flashcard, nil
 }
 
-// DeleteFlashcard deletes a flashcard from the database
 func DeleteFlashcard(query, front, back string) (bool, error) {
 	db := GetDB()
 	result, err := db.Exec(`
-		DELETE FROM flashcards 
+		DELETE FROM flashcards
 		WHERE query = ? AND front = ? AND back = ?
 	`, query, front, back)
 	if err != nil {
@@ -86,12 +76,11 @@ func DeleteFlashcard(query, front, back string) (bool, error) {
 	return rowsAffected > 0, nil
 }
 
-// FlashcardExists checks if a flashcard with the same front, back, and query already exists
 func FlashcardExists(front, back, query string) (bool, error) {
 	db := GetDB()
 	var count int
 	err := db.QueryRow(`
-		SELECT COUNT(*) FROM flashcards 
+		SELECT COUNT(*) FROM flashcards
 		WHERE front = ? AND back = ? AND query = ?
 	`, front, back, query).Scan(&count)
 

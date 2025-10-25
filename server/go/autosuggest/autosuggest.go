@@ -39,7 +39,7 @@ func HandleRequest(provider Provider, query string, limit int) types.Autosuggest
 	}
 
 	if limit <= 0 {
-		limit = 10 // Default limit
+		limit = 10
 	}
 
 	suggestions := provider.FindSuggestions(query, limit)

@@ -39,7 +39,6 @@ const LocationMap: React.FC<{ location: string }> = ({ location }) => {
   );
 };
 
-
 type SearchBarProps = {
   query: string;
   setQuery: React.Dispatch<React.SetStateAction<string>>;
@@ -314,7 +313,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search for anything..."
+            placeholder="Define..."
             value={query}
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
@@ -437,7 +436,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 </div>
               ) : null}
 
-              {/* Flashcard list component */}
               <FlashcardList
                 wordData={wordData}
                 flashcardState={flashcardManager.state}

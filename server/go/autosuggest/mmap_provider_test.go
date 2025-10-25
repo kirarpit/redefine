@@ -10,15 +10,13 @@ import (
 	"testing"
 )
 
-// Helper function to create a test file with sample words
 func createTestWordFile(t *testing.T) string {
-	// Create a temp directory for tests
+
 	testDir := filepath.Join(os.TempDir(), "redefine-test")
 	if err := os.MkdirAll(testDir, 0755); err != nil {
 		t.Fatalf("Failed to create test directory: %v", err)
 	}
 
-	// Create a test file with sample words
 	testFile := filepath.Join(testDir, "test_words.txt")
 	f, err := os.Create(testFile)
 	if err != nil {
@@ -26,7 +24,6 @@ func createTestWordFile(t *testing.T) string {
 	}
 	defer f.Close()
 
-	// Sample words
 	testWords := []string{
 		"apple",
 		"application",
@@ -38,10 +35,9 @@ func createTestWordFile(t *testing.T) string {
 		"mongoose",
 		"mobile",
 		"m",
-		"supercalifragilisticexpialidocious", // Long word test
+		"supercalifragilisticexpialidocious",
 	}
 
-	// Write sample words to the file
 	for _, word := range testWords {
 		f.WriteString(word + "\n")
 	}
@@ -50,24 +46,20 @@ func createTestWordFile(t *testing.T) string {
 }
 
 func TestMmapProviderLoadAndFindSuggestions(t *testing.T) {
-	// Create a test file with sample words
+
 	testFile := createTestWordFile(t)
 	defer os.RemoveAll(filepath.Dir(testFile))
 
-	// Create a new MmapProvider
 	provider := NewMmapProvider()
 
-	// Load the test data
 	if err := provider.LoadData(testFile); err != nil {
 		t.Fatalf("Failed to load test data: %v", err)
 	}
 
-	// Verify that the provider was initialized
 	if !provider.initialized {
 		t.Fatal("Provider was not initialized")
 	}
 
-	// Define test cases
 	testCases := []struct {
 		name     string
 		query    string
@@ -112,22 +104,18 @@ func TestMmapProviderLoadAndFindSuggestions(t *testing.T) {
 		},
 	}
 
-	// Run tests
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			results := provider.FindSuggestions(tc.query, tc.limit)
 			t.Logf("Query '%s', got results: %v", tc.query, results)
 
-			// Check if we have the right number of results
 			if len(results) > tc.limit {
 				t.Errorf("Got too many results, expected max %d but got %d", tc.limit, len(results))
 			}
 
-			// Sort both slices for comparison
 			sort.Strings(results)
 			sort.Strings(tc.expected)
 
-			// Compare the slice equality
 			match := true
 			if len(results) != len(tc.expected) {
 				match = false
@@ -149,19 +137,16 @@ func TestMmapProviderLoadAndFindSuggestions(t *testing.T) {
 }
 
 func TestMmapProviderCleanup(t *testing.T) {
-	// Create a test file with sample words
+
 	testFile := createTestWordFile(t)
 	defer os.RemoveAll(filepath.Dir(testFile))
 
-	// Create a new MmapProvider
 	provider := NewMmapProvider()
 
-	// Load the test data
 	if err := provider.LoadData(testFile); err != nil {
 		t.Fatalf("Failed to load test data: %v", err)
 	}
 
-	// Verify that resources were allocated
 	if provider.dataFile == nil {
 		t.Error("dataFile was not allocated")
 	}
@@ -175,10 +160,8 @@ func TestMmapProviderCleanup(t *testing.T) {
 		t.Error("indexOffsets was not populated")
 	}
 
-	// Test the cleanup function
 	provider.cleanup()
 
-	// Verify that resources were released
 	if provider.dataFile != nil {
 		t.Error("dataFile was not released")
 	}
@@ -214,12 +197,12 @@ func TestPadWord(t *testing.T) {
 		},
 		{
 			name:     "Word exactly WordLen characters",
-			input:    "abcdefghijklmnopqrstuvwx", // 24 characters
+			input:    "abcdefghijklmnopqrstuvwx",
 			expected: "abcdefghijklmnopqrstuvwx",
 		},
 		{
 			name:     "Word longer than WordLen",
-			input:    "abcdefghijklmnopqrstuvwxyz", // 26 characters
+			input:    "abcdefghijklmnopqrstuvwxyz",
 			expected: "abcdefghijklmnopqrstuvw*",
 		},
 	}
@@ -235,7 +218,7 @@ func TestPadWord(t *testing.T) {
 }
 
 func TestCompressAndQueryIndex(t *testing.T) {
-	// Create a sample index
+
 	testIndex := map[string][2]int64{
 		"a":   {0, 100},
 		"ap":  {0, 50},
@@ -249,32 +232,28 @@ func TestCompressAndQueryIndex(t *testing.T) {
 	provider := NewMmapProvider()
 	compressed := provider.compressIndex(testIndex)
 
-	// Ensure we got some bytes back
 	if len(compressed) == 0 {
 		t.Fatal("Compression produced empty result")
 	}
 
-	// Build offset table
 	offsets, err := provider.buildOffsetTable(compressed)
 	if err != nil {
 		t.Fatalf("Failed to build offset table: %v", err)
 	}
 
-	// Set up the provider with the compressed data
 	provider.indexData = compressed
 	provider.indexOffsets = offsets
 
-	// Test queries
 	tests := []struct {
 		prefix          string
 		expectedMatches bool
 	}{
-		{"a", true},   // Should find an entry for "a"
-		{"ap", true},  // Should find an entry for "ap"
-		{"app", true}, // Should find an entry for "app"
-		{"b", true},   // Should find an entry for "b"
-		{"m", true},   // Should find an entry for "m"
-		{"z", false},  // Should find nothing
+		{"a", true},
+		{"ap", true},
+		{"app", true},
+		{"b", true},
+		{"m", true},
+		{"z", false},
 	}
 
 	for _, tc := range tests {
@@ -290,13 +269,12 @@ func TestCompressAndQueryIndex(t *testing.T) {
 					t.Errorf("For prefix '%s' expected to find a record, but got empty prefix", tc.prefix)
 				}
 
-				// Verify the prefix matches or starts with our search prefix
 				if !strings.HasPrefix(record.Prefix, tc.prefix) {
 					t.Errorf("For prefix '%s' got record with prefix '%s', which doesn't match",
 						tc.prefix, record.Prefix)
 				}
 			} else {
-				// For prefixes we don't expect to match, the record should have an empty prefix
+
 				if record.Prefix != "" {
 					t.Errorf("For prefix '%s' expected empty prefix, but got: %+v", tc.prefix, record)
 				}
@@ -306,21 +284,19 @@ func TestCompressAndQueryIndex(t *testing.T) {
 }
 
 func BenchmarkMmapSearch(b *testing.B) {
-	// Create a test file with enough words to benchmark
+
 	testDir := filepath.Join(os.TempDir(), "redefine-bench")
 	if err := os.MkdirAll(testDir, 0755); err != nil {
 		b.Fatalf("Failed to create test directory: %v", err)
 	}
 	defer os.RemoveAll(testDir)
 
-	// Create a test file with sample words (more words for a realistic benchmark)
 	testFile := filepath.Join(testDir, "bench_words.txt")
 	f, err := os.Create(testFile)
 	if err != nil {
 		b.Fatalf("Failed to create test file: %v", err)
 	}
 
-	// Generate words for benchmarking (a-z + aa-zz)
 	const alphabet = "abcdefghijklmnopqrstuvwxyz"
 	for i := 0; i < len(alphabet); i++ {
 		f.WriteString(string(alphabet[i]) + "\n")
@@ -330,27 +306,22 @@ func BenchmarkMmapSearch(b *testing.B) {
 	}
 	f.Close()
 
-	// Create a new MmapProvider
 	provider := NewMmapProvider()
 
-	// Load the test data
 	if err := provider.LoadData(testFile); err != nil {
 		b.Fatalf("Failed to load test data: %v", err)
 	}
 
-	// Measure memory before tests
 	var m1, m2 runtime.MemStats
 	runtime.ReadMemStats(&m1)
 
-	// Benchmark the search
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// Use different prefixes to avoid just testing cache
+
 		prefix := string(alphabet[i%len(alphabet)])
 		provider.FindSuggestions(prefix, 10)
 	}
 
-	// Measure memory after tests
 	runtime.ReadMemStats(&m2)
 
 	b.ReportMetric(float64(m2.TotalAlloc-m1.TotalAlloc)/1024/1024, "MB_total")
@@ -362,19 +333,15 @@ func TestMemoryUsage(t *testing.T) {
 		t.Skip("skipping memory test in short mode")
 	}
 
-	// Create a test file with sample words
 	testFile := createTestWordFile(t)
 	defer os.RemoveAll(filepath.Dir(testFile))
 
-	// Create a new MmapProvider
 	provider := NewMmapProvider()
 
-	// Load the test data
 	if err := provider.LoadData(testFile); err != nil {
 		t.Fatalf("Failed to load test data: %v", err)
 	}
 
-	// Get memory stats after loading data
 	var m runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&m)
@@ -382,14 +349,12 @@ func TestMemoryUsage(t *testing.T) {
 	t.Logf("Memory usage after loading: %v KB", m.HeapAlloc/1024)
 	t.Logf("Total allocated memory: %v KB", m.TotalAlloc/1024)
 
-	// Perform some searches to simulate usage
 	for i := 0; i < 100; i++ {
 		provider.FindSuggestions("a", 10)
 		provider.FindSuggestions("b", 10)
 		provider.FindSuggestions("m", 10)
 	}
 
-	// Get memory stats after searching
 	runtime.GC()
 	runtime.ReadMemStats(&m)
 
@@ -397,10 +362,8 @@ func TestMemoryUsage(t *testing.T) {
 	t.Logf("Total allocated memory: %v KB", m.TotalAlloc/1024)
 }
 
-// TestCompressIndexAndReadRecord tests the compression of a dummy index
-// and verifies that records can be properly read back
 func TestCompressIndexAndReadRecord(t *testing.T) {
-	// Create a dummy index with known values
+
 	dummyIndex := map[string][2]int64{
 		"a":    {0, 100},
 		"ab":   {0, 50},
@@ -411,24 +374,20 @@ func TestCompressIndexAndReadRecord(t *testing.T) {
 		"long": {1000, 2000},
 	}
 
-	// Create provider and compress the index
 	provider := NewMmapProvider()
 	compressedData := provider.compressIndex(dummyIndex)
 
-	// Ensure the compressed data is not empty
 	if len(compressedData) == 0 {
 		t.Fatal("Compression produced empty result")
 	}
 
-	// Check if we can read the number of records correctly
 	numRecords := int(binary.LittleEndian.Uint64(compressedData[:8]))
 	if numRecords != len(dummyIndex) {
 		t.Errorf("Expected %d records, but header indicates %d records", len(dummyIndex), numRecords)
 	}
 
-	// Try to read each record manually
 	recordsRead := make(map[string]IndexRecord)
-	offset := 8 // Skip the 8-byte header
+	offset := 8
 
 	for i := 0; i < numRecords; i++ {
 		record, next, err := provider.readRecord(compressedData, offset)
@@ -436,19 +395,15 @@ func TestCompressIndexAndReadRecord(t *testing.T) {
 			t.Fatalf("Failed to read record at offset %d: %v", offset, err)
 		}
 
-		// Store the record
 		recordsRead[record.Prefix] = record
 
-		// Move to the next record
 		offset = next
 	}
 
-	// Verify all records were read correctly
 	if len(recordsRead) != len(dummyIndex) {
 		t.Errorf("Expected to read %d records, but got %d", len(dummyIndex), len(recordsRead))
 	}
 
-	// Verify specific records
 	expectedRecords := []struct {
 		prefix string
 		start  uint64
@@ -476,9 +431,8 @@ func TestCompressIndexAndReadRecord(t *testing.T) {
 		}
 	}
 
-	// Test reading a record at specific offset
 	for offset, prefix := range map[int]string{
-		8: "a", // First record should be at offset 8 (after header)
+		8: "a",
 	} {
 		record, _, err := provider.readRecord(compressedData, offset)
 		if err != nil {
@@ -491,7 +445,6 @@ func TestCompressIndexAndReadRecord(t *testing.T) {
 		}
 	}
 
-	// Test record decompression to ensure the entire cycle works
 	offsets, err := provider.buildOffsetTable(compressedData)
 	if err != nil {
 		t.Fatalf("Failed to build offset table: %v", err)
@@ -501,7 +454,6 @@ func TestCompressIndexAndReadRecord(t *testing.T) {
 		t.Errorf("Expected %d offsets in offset table, but got %d", numRecords, len(offsets))
 	}
 
-	// Test queryCompressedIndex function with a specific prefix
 	provider.indexData = compressedData
 	provider.indexOffsets = offsets
 
@@ -517,12 +469,11 @@ func TestCompressIndexAndReadRecord(t *testing.T) {
 			continue
 		}
 
-		// Verify the query returns the correct record
 		foundPrefix := record.Prefix
 		expectedPrefix := testPrefix
-		// For prefixes of length 1 or 2, the longest matching prefix should be returned
+
 		if len(testPrefix) == 1 {
-			// e.g., for "a", expect the last match which would be "abc"
+
 			for p := range dummyIndex {
 				if strings.HasPrefix(p, testPrefix) && p > expectedPrefix {
 					expectedPrefix = p

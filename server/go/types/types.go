@@ -1,13 +1,11 @@
 package types
 
-// FlashcardItem represents an individual flashcard within an explanation
 type FlashcardItem struct {
 	Front string `json:"front" yaml:"front"`
 	Back  string `json:"back" yaml:"back"`
-	Type  string `json:"type" yaml:"type"` // Can be "cloze", "basic", or "reversed"
+	Type  string `json:"type" yaml:"type"`
 }
 
-// ExplanationEntry represents a complete explanation response
 type ExplanationEntry struct {
 	Query         string          `json:"query" yaml:"query"`
 	Type          string          `json:"type" yaml:"type"`
@@ -18,7 +16,6 @@ type ExplanationEntry struct {
 	Flashcards    []FlashcardItem `json:"flashcards,omitempty" yaml:"flashcards,omitempty"`
 }
 
-// Flashcard represents a saved flashcard in the database
 type Flashcard struct {
 	Front      string `json:"front"`
 	Back       string `json:"back"`
@@ -26,7 +23,6 @@ type Flashcard struct {
 	ExportedAt string `json:"exportedAt"`
 }
 
-// LLMModel represents an LLM model configuration
 type LLMModel struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
@@ -34,23 +30,19 @@ type LLMModel struct {
 	APIEndpoint string `json:"apiEndpoint,omitempty"`
 }
 
-// PromptTemplate represents a prompt template
 type PromptTemplate struct {
 	Template string `json:"template"`
-	Type     string `json:"type,omitempty"` // Can be "general" or "anki"
+	Type     string `json:"type,omitempty"`
 }
 
-// AutosuggestResponse represents the response for autosuggest API
 type AutosuggestResponse struct {
 	Suggestions []string `json:"suggestions"`
 }
 
-// SearchResponse represents the response for search API
 type SearchResponse struct {
 	Entry ExplanationEntry `json:"entry"`
 }
 
-// ErrorResponse represents an API error response
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

@@ -8,7 +8,6 @@ import (
 func TestRadixProviderInsertAndFindPrefix(t *testing.T) {
 	provider := NewRadixProvider()
 
-	// Insert test words
 	testWords := []string{
 		"apple",
 		"application",
@@ -19,14 +18,13 @@ func TestRadixProviderInsertAndFindPrefix(t *testing.T) {
 		"meat",
 		"mongoose",
 		"mobile",
-		"m", // Include single character word
+		"m",
 	}
 
 	for _, word := range testWords {
 		provider.Insert(word)
 	}
 
-	// Test cases
 	testCases := []struct {
 		prefix   string
 		limit    int
@@ -64,7 +62,6 @@ func TestRadixProviderInsertAndFindPrefix(t *testing.T) {
 			results := provider.findWordsWithPrefix(tc.prefix, tc.limit)
 			t.Logf("Query '%s', got results: %v", tc.prefix, results)
 
-			// Sort both slices for comparison
 			if !reflect.DeepEqual(sortedCopy(results), sortedCopy(tc.expected)) {
 				t.Errorf("For prefix '%s' with limit %d, expected %v but got %v",
 					tc.prefix, tc.limit, tc.expected, results)
@@ -73,10 +70,8 @@ func TestRadixProviderInsertAndFindPrefix(t *testing.T) {
 	}
 }
 
-// Helper function for sorted comparison
 func sortedCopy(strs []string) []string {
-	// For simplicity, using manual bubble sort as we don't need to import sort package
-	// In a real test, you might use sort.Strings()
+
 	result := make([]string, len(strs))
 	copy(result, strs)
 
@@ -90,11 +85,9 @@ func sortedCopy(strs []string) []string {
 	return result
 }
 
-// Test the combined search function
 func TestRadixProviderFindSuggestions(t *testing.T) {
 	provider := NewRadixProvider()
 
-	// Insert test words
 	testWords := []string{
 		"apple",
 		"application",
@@ -112,7 +105,6 @@ func TestRadixProviderFindSuggestions(t *testing.T) {
 		provider.Insert(word)
 	}
 
-	// Test cases
 	testCases := []struct {
 		query    string
 		limit    int
@@ -135,7 +127,6 @@ func TestRadixProviderFindSuggestions(t *testing.T) {
 			results := provider.FindSuggestions(tc.query, tc.limit)
 			t.Logf("Query '%s', got results: %v", tc.query, results)
 
-			// Sort both slices for comparison
 			if !reflect.DeepEqual(sortedCopy(results), sortedCopy(tc.expected)) {
 				t.Errorf("For query '%s' with limit %d, expected %v but got %v",
 					tc.query, tc.limit, tc.expected, results)

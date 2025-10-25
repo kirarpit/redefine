@@ -4,12 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupRoutes configures all the routes for the application
 func SetupRoutes(r *gin.Engine) {
-	// API group
+
 	api := r.Group("/api")
-	
-	// API info endpoint
+
 	api.GET("", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  "ok",
@@ -23,10 +21,9 @@ func SetupRoutes(r *gin.Engine) {
 			},
 		})
 	})
-	
-	// Register all routes
+
 	setupExplanationRoutes(api)
 	setupFlashcardRoutes(api)
 	setupLLMRoutes(api)
 	setupSettingsRoutes(api)
-} 
+}

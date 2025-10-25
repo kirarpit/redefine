@@ -15,21 +15,17 @@ import (
 )
 
 func main() {
-	// Load environment variables from .env file
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Warning: No .env file found")
 	}
 
-	// Initialize database
 	if err := db.Initialize(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	// Set up Gin
 	r := gin.Default()
 
-	// Configure CORS
 	if os.Getenv("GIN_MODE") != "release" {
 		log.Println("CORS enabled for development")
 		r.Use(cors.New(cors.Config{
@@ -40,17 +36,14 @@ func main() {
 		}))
 	}
 
-	// Can't serve /app/static at root because /api will conflict with it.
 	r.Use(staticFileMiddleware("/app/static"))
 
-	// Set up API routes
 	routes.SetupRoutes(r)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.File("/app/static/index.html")
 	})
 
-	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "5000"
@@ -63,23 +56,19 @@ func main() {
 
 func staticFileMiddleware(root string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip /api routes
 		if strings.HasPrefix(c.Request.URL.Path, "/api") {
 			c.Next()
 			return
 		}
 
-		// Absolute path to the file
 		fullPath := filepath.Join(root, filepath.Clean(c.Request.URL.Path))
 
-		// If it exists and is not a directory, serve it
 		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
 			c.File(fullPath)
 			c.Abort()
 			return
 		}
 
-		// Otherwise, continue to the next handler (NoRoute)
 		c.Next()
 	}
 }

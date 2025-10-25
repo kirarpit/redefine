@@ -9,24 +9,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// setupFlashcardRoutes sets up routes for flashcard APIs
 func setupFlashcardRoutes(api *gin.RouterGroup) {
 	flashcardGroup := api.Group("/flashcards")
 
-	// Get all flashcards
 	flashcardGroup.GET("/", getAllFlashcards)
 
-	// Create a new flashcard
 	flashcardGroup.POST("/", createFlashcard)
 
-	// Delete a flashcard
 	flashcardGroup.DELETE("/", deleteFlashcard)
 
-	// Export flashcards
 	flashcardGroup.POST("/export", exportFlashcards)
 }
 
-// getAllFlashcards handles the GET request to retrieve all flashcards
 func getAllFlashcards(c *gin.Context) {
 	flashcards, err := db.GetFlashcards()
 	if err != nil {
@@ -38,7 +32,6 @@ func getAllFlashcards(c *gin.Context) {
 	c.JSON(200, flashcards)
 }
 
-// createFlashcard handles the POST request to create a new flashcard
 func createFlashcard(c *gin.Context) {
 	var flashcard types.Flashcard
 	if err := c.ShouldBindJSON(&flashcard); err != nil {
@@ -46,18 +39,15 @@ func createFlashcard(c *gin.Context) {
 		return
 	}
 
-	// Validate required fields
 	if flashcard.Front == "" || flashcard.Query == "" {
 		c.JSON(400, types.ErrorResponse{Error: "Missing required fields"})
 		return
 	}
 
-	// Set exported timestamp if not provided
 	if flashcard.ExportedAt == "" {
 		flashcard.ExportedAt = time.Now().Format(time.RFC3339)
 	}
 
-	// Add to database
 	createdFlashcard, err := db.AddFlashcard(flashcard)
 	if err != nil {
 		log.Printf("Error adding flashcard: %v", err)
@@ -68,7 +58,6 @@ func createFlashcard(c *gin.Context) {
 	c.JSON(201, createdFlashcard)
 }
 
-// deleteFlashcard handles the DELETE request to remove a flashcard
 func deleteFlashcard(c *gin.Context) {
 	var request struct {
 		Front string `json:"front"`
@@ -81,13 +70,11 @@ func deleteFlashcard(c *gin.Context) {
 		return
 	}
 
-	// Validate required fields
 	if request.Front == "" || request.Query == "" {
 		c.JSON(400, types.ErrorResponse{Error: "Missing required fields"})
 		return
 	}
 
-	// Delete from database
 	success, err := db.DeleteFlashcard(request.Query, request.Front, request.Back)
 	if err != nil {
 		log.Printf("Error deleting flashcard: %v", err)
@@ -103,7 +90,6 @@ func deleteFlashcard(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Flashcard deleted successfully"})
 }
 
-// exportFlashcards handles the POST request to export flashcards
 func exportFlashcards(c *gin.Context) {
 	var request struct {
 		Flashcards []types.Flashcard `json:"flashcards"`
@@ -121,29 +107,25 @@ func exportFlashcards(c *gin.Context) {
 		return
 	}
 
-	// Set default format if not provided
 	if request.Format == "" {
 		request.Format = "anki"
 	}
 
 	log.Printf("Exporting %d flashcards in %s format", len(request.Flashcards), request.Format)
 
-	// Save flashcards to database
 	var savedFlashcards []types.Flashcard
 	var skippedCount int
 	for _, card := range request.Flashcards {
-		// Validate required fields
+
 		if card.Front == "" || card.Query == "" {
 			log.Printf("Skipping flashcard with missing required fields: %+v", card)
 			continue
 		}
 
-		// Set exported timestamp if not provided
 		if card.ExportedAt == "" {
 			card.ExportedAt = time.Now().Format(time.RFC3339)
 		}
 
-		// Check if flashcard already exists
 		exists, err := db.FlashcardExists(card.Front, card.Back, card.Query)
 		if err != nil {
 			log.Printf("Error checking if flashcard exists: %v", err)
@@ -154,16 +136,14 @@ func exportFlashcards(c *gin.Context) {
 			log.Printf("Flashcard already exists, skipping: %s / %s", card.Front, card.Query)
 			skippedCount++
 
-			// Even though we're not saving it again, we still consider it "saved" for the response
 			savedFlashcards = append(savedFlashcards, card)
 			continue
 		}
 
-		// Save the new flashcard
 		savedCard, err := db.AddFlashcard(card)
 		if err != nil {
 			log.Printf("Error saving flashcard: %v", err)
-			// Continue with other cards
+
 			continue
 		}
 
@@ -176,9 +156,8 @@ func exportFlashcards(c *gin.Context) {
 	log.Printf("Export summary: %d saved, %d skipped (already existed)",
 		len(savedFlashcards)-skippedCount, skippedCount)
 
-	// Process based on format
 	if request.Format == "anki" {
-		// Create Anki-compatible format
+
 		ankiData := gin.H{
 			"notes":            make([]gin.H, len(request.Flashcards)),
 			"saved_flashcards": savedFlashcards,
@@ -194,7 +173,7 @@ func exportFlashcards(c *gin.Context) {
 
 		c.JSON(200, ankiData)
 	} else if request.Format == "csv" {
-		// Create CSV format (just the data structure, not the actual file)
+
 		csvData := gin.H{
 			"headers":          []string{"front", "back", "query"},
 			"rows":             make([][]string, len(request.Flashcards)),
