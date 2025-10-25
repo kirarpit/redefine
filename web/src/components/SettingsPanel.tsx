@@ -9,11 +9,8 @@ import {
   deleteModel,
   testModel,
 } from "../services/models";
-import {
-  savePromptTemplate,
-  fetchPromptTemplate,
-  PromptType,
-} from "../services/prompts";
+import { PromptType } from "../services/prompts";
+import { usePromptTemplates } from "../hooks/usePromptTemplates";
 
 // Types
 type SettingsPanelProps = {
@@ -100,30 +97,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     useState<PromptType>("general");
 
   // General prompt template state
-  const [generalPromptTemplate, setGeneralPromptTemplate] =
-    useState<string>("");
-  const [originalGeneralPromptTemplate, setOriginalGeneralPromptTemplate] =
-    useState<string>("");
-  const [isGeneralPromptSaving, setIsGeneralPromptSaving] = useState(false);
-  const [generalPromptSaveError, setGeneralPromptSaveError] = useState<
-    string | null
-  >(null);
-  const [generalPromptSaveSuccess, setGeneralPromptSaveSuccess] =
-    useState(false);
-  const [hasGeneralPromptUnsavedChanges, setHasGeneralPromptUnsavedChanges] =
-    useState(false);
-
-  // Anki prompt template state
-  const [ankiPromptTemplate, setAnkiPromptTemplate] = useState<string>("");
-  const [originalAnkiPromptTemplate, setOriginalAnkiPromptTemplate] =
-    useState<string>("");
-  const [isAnkiPromptSaving, setIsAnkiPromptSaving] = useState(false);
-  const [ankiPromptSaveError, setAnkiPromptSaveError] = useState<string | null>(
-    null
-  );
-  const [ankiPromptSaveSuccess, setAnkiPromptSaveSuccess] = useState(false);
-  const [hasAnkiPromptUnsavedChanges, setHasAnkiPromptUnsavedChanges] =
-    useState(false);
+  const {
+    promptStates,
+    updateTemplate,
+    saveTemplate,
+    resetToDefault,
+    loadTemplates,
+  } = usePromptTemplates();
 
   const [models, setModels] = useState<LLMModel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -153,40 +133,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   const [generatedExplanation, setGeneratedExplanation] = useState("");
   const [isAddingModel, setIsAddingModel] = useState(false);
 
-  // Helper to get current prompt state based on active type
-  const getCurrentPromptState = () => {
-    if (activePromptType === "general") {
-      return {
-        promptTemplate: generalPromptTemplate,
-        setPromptTemplate: setGeneralPromptTemplate,
-        originalPromptTemplate: originalGeneralPromptTemplate,
-        setOriginalPromptTemplate: setOriginalGeneralPromptTemplate,
-        isSavingPrompt: isGeneralPromptSaving,
-        setIsSavingPrompt: setIsGeneralPromptSaving,
-        promptSaveError: generalPromptSaveError,
-        setPromptSaveError: setGeneralPromptSaveError,
-        promptSaveSuccess: generalPromptSaveSuccess,
-        setPromptSaveSuccess: setGeneralPromptSaveSuccess,
-        hasUnsavedChanges: hasGeneralPromptUnsavedChanges,
-        setHasUnsavedChanges: setHasGeneralPromptUnsavedChanges,
-      };
-    } else {
-      return {
-        promptTemplate: ankiPromptTemplate,
-        setPromptTemplate: setAnkiPromptTemplate,
-        originalPromptTemplate: originalAnkiPromptTemplate,
-        setOriginalPromptTemplate: setOriginalAnkiPromptTemplate,
-        isSavingPrompt: isAnkiPromptSaving,
-        setIsSavingPrompt: setIsAnkiPromptSaving,
-        promptSaveError: ankiPromptSaveError,
-        setPromptSaveError: setAnkiPromptSaveError,
-        promptSaveSuccess: ankiPromptSaveSuccess,
-        setPromptSaveSuccess: setAnkiPromptSaveSuccess,
-        hasUnsavedChanges: hasAnkiPromptUnsavedChanges,
-        setHasUnsavedChanges: setHasAnkiPromptUnsavedChanges,
-      };
-    }
-  };
+  const generalPromptState = promptStates.general;
+  const ankiPromptState = promptStates.anki;
+  const currentPromptState = promptStates[activePromptType];
 
   // Fetch models and prompt templates from the backend API
   useEffect(() => {
@@ -217,19 +166,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
           return ""; // Return empty string if no models available
         });
 
-        // Fetch general prompt template
-        const savedGeneralTemplate = await fetchPromptTemplate("general");
-        if (savedGeneralTemplate) {
-          setGeneralPromptTemplate(savedGeneralTemplate);
-          setOriginalGeneralPromptTemplate(savedGeneralTemplate);
-        }
-
-        // Fetch anki prompt template
-        const savedAnkiTemplate = await fetchPromptTemplate("anki");
-        if (savedAnkiTemplate) {
-          setAnkiPromptTemplate(savedAnkiTemplate);
-          setOriginalAnkiPromptTemplate(savedAnkiTemplate);
-        }
+        await loadTemplates();
 
         setError(null);
       } catch (err) {
@@ -241,26 +178,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     };
 
     loadInitialData();
-  }, []);
-
-  // Check for unsaved changes for general prompt
-  useEffect(() => {
-    setHasGeneralPromptUnsavedChanges(
-      generalPromptTemplate !== originalGeneralPromptTemplate
-    );
-  }, [generalPromptTemplate, originalGeneralPromptTemplate]);
-
-  // Check for unsaved changes for anki prompt
-  useEffect(() => {
-    setHasAnkiPromptUnsavedChanges(
-      ankiPromptTemplate !== originalAnkiPromptTemplate
-    );
-  }, [ankiPromptTemplate, originalAnkiPromptTemplate]);
+  }, [loadTemplates]);
 
   // Add beforeunload event handler for unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasGeneralPromptUnsavedChanges || hasAnkiPromptUnsavedChanges) {
+      if (
+        generalPromptState.hasUnsavedChanges ||
+        ankiPromptState.hasUnsavedChanges
+      ) {
         // Standard way to show a confirmation dialog
         const confirmationMessage =
           "You have unsaved changes. Are you sure you want to leave?";
@@ -270,7 +196,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     };
 
     // Add event listener if there are unsaved changes
-    if (hasGeneralPromptUnsavedChanges || hasAnkiPromptUnsavedChanges) {
+    if (
+      generalPromptState.hasUnsavedChanges ||
+      ankiPromptState.hasUnsavedChanges
+    ) {
       window.addEventListener("beforeunload", handleBeforeUnload);
     }
 
@@ -278,7 +207,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [hasGeneralPromptUnsavedChanges, hasAnkiPromptUnsavedChanges]);
+  }, [
+    generalPromptState.hasUnsavedChanges,
+    ankiPromptState.hasUnsavedChanges,
+  ]);
 
   // Persist selected model to localStorage
   useEffect(() => {
@@ -302,43 +234,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   ]);
 
   // Handle saving prompt template to backend
-  const handleSavePromptTemplate = async (template: string) => {
-    const {
-      setIsSavingPrompt,
-      setPromptSaveError,
-      setPromptSaveSuccess,
-      setOriginalPromptTemplate,
-      setHasUnsavedChanges,
-    } = getCurrentPromptState();
-
-    setIsSavingPrompt(true);
-    setPromptSaveError(null);
-    setPromptSaveSuccess(false);
-
-    try {
-      await savePromptTemplate(template, activePromptType);
-      setPromptSaveSuccess(true);
-      setOriginalPromptTemplate(template); // Update the original template after successful save
-      setHasUnsavedChanges(false);
-
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setPromptSaveSuccess(false);
-      }, 3000);
-    } catch (error) {
-      setPromptSaveError(
-        error instanceof Error
-          ? error.message
-          : `Failed to save ${activePromptType} prompt template`
-      );
-    } finally {
-      setIsSavingPrompt(false);
-    }
-  };
+  const handleSavePromptTemplate = (template: string) =>
+    saveTemplate(activePromptType, template);
 
   const handlePromptChange = (newPrompt: string) => {
-    const { setPromptTemplate } = getCurrentPromptState();
-    setPromptTemplate(newPrompt);
+    updateTemplate(activePromptType, newPrompt);
   };
 
   const handleAddModel = async (newModel: LLMModel) => {
@@ -396,17 +296,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   };
 
   const handleResetToDefault = async () => {
-    const {
-      hasUnsavedChanges,
-      setPromptTemplate,
-      setOriginalPromptTemplate,
-      setPromptSaveError,
-      setPromptSaveSuccess,
-      setHasUnsavedChanges,
-    } = getCurrentPromptState();
+    const currentState = promptStates[activePromptType];
 
     if (
-      hasUnsavedChanges &&
+      currentState.hasUnsavedChanges &&
       !window.confirm(
         `You have unsaved changes in the ${activePromptType} prompt. Are you sure you want to reset to default?`
       )
@@ -414,31 +307,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       return;
     }
 
-    try {
-      // Fetch the default template for the current type
-      const defaultTemplate = await fetchPromptTemplate(activePromptType, true);
-      if (defaultTemplate) {
-        // Save the default template to the backend
-        await savePromptTemplate(defaultTemplate, activePromptType);
-
-        // Update local state
-        setPromptTemplate(defaultTemplate);
-        setOriginalPromptTemplate(defaultTemplate);
-        setHasUnsavedChanges(false);
-        setPromptSaveSuccess(true);
-
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          setPromptSaveSuccess(false);
-        }, 3000);
-      }
-    } catch (error) {
-      setPromptSaveError(
-        error instanceof Error
-          ? error.message
-          : `Failed to reset ${activePromptType} prompt template`
-      );
-    }
+    await resetToDefault(activePromptType);
   };
 
   const handleTestPrompt = async () => {
@@ -455,7 +324,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     setIsGenerating(true);
     setGeneratedExplanation("");
 
-    const { promptTemplate } = getCurrentPromptState();
+    const { promptTemplate } = promptStates[activePromptType];
     const finalPrompt = promptTemplate.replace("{query}", testQuery);
 
     try {
@@ -500,9 +369,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       </div>
     );
   }
-
-  // Get current prompt state for rendering
-  const currentPromptState = getCurrentPromptState();
 
   return (
     <div className="space-y-6 settings-container">
@@ -585,9 +451,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             onPromptChange={handlePromptChange}
             onResetToDefault={handleResetToDefault}
             onSaveTemplate={handleSavePromptTemplate}
-            isSaving={currentPromptState.isSavingPrompt}
-            saveError={currentPromptState.promptSaveError}
-            saveSuccess={currentPromptState.promptSaveSuccess}
+            isSaving={currentPromptState.isSaving}
+            saveError={currentPromptState.saveError}
+            saveSuccess={currentPromptState.saveSuccess}
             hasUnsavedChanges={currentPromptState.hasUnsavedChanges}
             expandEnabled={enableExpandableEditor}
           />
