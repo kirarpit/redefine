@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, ChangeEvent, useCallback } from "react";
 import { ExplanationEntry, Flashcard } from "../types";
 import { FlashcardList } from "./Flashcard";
 import { useFlashcardManager } from "../hooks/useFlashcardManager";
-import { API_BASE_URL } from "../config";
+import { fetchSuggestions } from "../services/search";
 
 // Simple LocationMap component
 const LocationMap: React.FC<{ location: string }> = ({ location }) => {
@@ -33,63 +33,6 @@ const LocationMap: React.FC<{ location: string }> = ({ location }) => {
   );
 };
 
-export const searchExplanation = async (
-  query: string,
-  modelId: string,
-  promptType: string = "general"
-): Promise<ExplanationEntry> => {
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/explain/search?q=${encodeURIComponent(
-        query
-      )}&modelId=${encodeURIComponent(modelId)}&promptType=${encodeURIComponent(
-        promptType
-      )}`
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP error! Status: ${response.status}`
-      );
-    }
-
-    const data = await response.json();
-    console.log(data);
-    return data.entry;
-  } catch (error) {
-    console.error("Error searching for explanation:", error);
-    throw error;
-  }
-};
-
-// Add a new function to fetch autocomplete suggestions from the backend
-export const fetchSuggestions = async (query: string): Promise<string[]> => {
-  if (!query.trim() || query.trim().length <= 1) {
-    return [];
-  }
-
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/explain/autosuggest?q=${encodeURIComponent(
-        query.trim()
-      )}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching suggestions:", error);
-    return [];
-  }
-};
-
-export const getSelectedModelId = (): string | null => {
-  return localStorage.getItem("selectedModel");
-};
 
 type SearchBarProps = {
   query: string;

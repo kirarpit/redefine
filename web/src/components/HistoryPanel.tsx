@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Flashcard, SearchHistoryItem } from "../types";
-import { API_BASE_URL } from "../config";
+import { deleteFlashcard, fetchFlashcards } from "../services/flashcards";
 
 type HistoryPanelProps = {
   searchHistory: SearchHistoryItem[];
@@ -136,7 +136,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
   const removeFlashcard = async (index: number): Promise<void> => {
     try {
-      // Get the flashcard based on the index in the sorted array
       if (index < 0 || index >= sortedFlashcards.length) {
         console.error("Invalid flashcard index:", index);
         return;
@@ -144,25 +143,16 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
       const flashcardToRemove = sortedFlashcards[index];
 
-      // Make API call to delete the flashcard from the database
-      const response = await fetch(`${API_BASE_URL}/flashcards/`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          front: flashcardToRemove.front,
-          back: flashcardToRemove.back,
-          query: flashcardToRemove.query,
-        }),
+      const success = await deleteFlashcard({
+        front: flashcardToRemove.front,
+        back: flashcardToRemove.back,
+        query: flashcardToRemove.query,
       });
 
-      if (!response.ok) {
+      if (!success) {
         console.error("Failed to delete flashcard from database");
       }
 
-      // Update local state regardless of API success
-      // Filter out the deleted flashcard based on its content, not index
       const newFlashcards = exportedFlashcards.filter(
         (card) =>
           card.front !== flashcardToRemove.front ||
@@ -234,14 +224,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   // Fetch flashcards from the database
   const fetchFlashcardsFromDatabase = async (): Promise<void> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/flashcards/`);
-
-      if (!response.ok) {
-        console.error("Failed to fetch flashcards from database");
-        return;
-      }
-
-      const flashcardsFromDB = await response.json();
+      const flashcardsFromDB = await fetchFlashcards();
 
       // Only update if we got data from the server
       if (Array.isArray(flashcardsFromDB) && flashcardsFromDB.length > 0) {

@@ -1,7 +1,7 @@
 import { Dispatch, MouseEvent, SetStateAction, useEffect, useState } from "react";
-import { API_BASE_URL } from "../config";
 import { ExplanationEntry, Flashcard } from "../types";
 import { useAnkiService } from "../components/AnkiService";
+import { exportFlashcards, FlashcardExportResponse } from "../services/flashcards";
 
 export type FlashcardStateType = {
   editingFlashcard: {
@@ -151,12 +151,9 @@ export const useFlashcardManager = (
 
     try {
       logToAnki("Saving flashcards to database", "info");
-      const response = await fetch(`${API_BASE_URL}/flashcards/export`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      let result: FlashcardExportResponse;
+      try {
+        result = await exportFlashcards({
           flashcards: flashcardsToExport.map((card) => ({
             front: card.front,
             back: card.back,
@@ -164,19 +161,17 @@ export const useFlashcardManager = (
             exportedAt: new Date().toISOString(),
           })),
           format: "anki",
-        }),
-      });
-
-      if (!response.ok) {
-        const errorMsg = `HTTP error: ${response.status}`;
+        });
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : String(error);
         logToAnki(
           `Failed to save flashcards to database: ${errorMsg}`,
           "error"
         );
-        throw new Error("Failed to save flashcards to database");
+        throw error;
       }
 
-      const result = await response.json();
       logToAnki("Database save response received", "info", result);
 
       const savedFlashcards = result.saved_flashcards;

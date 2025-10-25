@@ -3,7 +3,8 @@ import SearchBar from "./SearchBar";
 import HistoryPanel from "./HistoryPanel";
 import SettingsPanel from "./SettingsPanel";
 import { ExplanationEntry, Flashcard, SearchHistoryItem } from "../types";
-import { searchExplanation, getSelectedModelId } from "./SearchBar";
+import { searchExplanation } from "../services/search";
+import { getSelectedModelId } from "../services/models";
 import logo from "../assets/logo.svg";
 
 // Create a memo-wrapped component for streamed text to prevent re-renders
