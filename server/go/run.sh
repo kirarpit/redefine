@@ -16,9 +16,6 @@ GIN_MODE=debug
 
 # Encryption configuration - CHANGE THIS IN PRODUCTION!
 SALT_KEY=redefine-default-salt-key
-
-# Static files (for production)
-STATIC_FOLDER=../../../web/build
 EOF
 fi
 
