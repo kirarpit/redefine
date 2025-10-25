@@ -3,10 +3,8 @@ import { LLMModel } from "../types";
 import { Card, Button } from "./UIComponents";
 import { testModel } from "../services/models";
 
-// Constants
 export const RECOMMENDED_MODEL_ID = "gemini/gemini-2.0-flash";
 
-// Model List Component
 type ModelListProps = {
   models: LLMModel[];
   onRemove: (id: string) => void;
@@ -61,7 +59,7 @@ export const ModelList: FC<ModelListProps> = ({
           )}
           <button
             onClick={(e) => {
-              e.stopPropagation(); // Prevent triggering the parent onClick
+              e.stopPropagation();
               onRemove(model.id);
             }}
             className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium bg-transparent rounded-md px-3 py-1"
@@ -98,12 +96,10 @@ export const AddModelForm: FC<AddModelFormProps> = ({
   const [modelIdError, setModelIdError] = useState("");
   const [showRecommendation, setShowRecommendation] = useState(true);
 
-  // Check if recommended model is already added
   const isRecommendedModelAdded = models.some(
     (model) => model.id === RECOMMENDED_MODEL_ID
   );
 
-  // Modify the testApiConnection function to make it reusable and return a promise
   const testApiConnection = async (showUI = true): Promise<boolean> => {
     if (!newModelApiKey.trim()) {
       alert("Please enter an API key");
@@ -121,11 +117,9 @@ export const AddModelForm: FC<AddModelFormProps> = ({
     }
 
     try {
-      // Create temporary model ID for testing
       const tempModelId = newModelId.trim();
       const testPrompt = "hello world";
 
-      // Make a real API call to test the model
       await testModel(
         tempModelId,
         testPrompt,
@@ -159,12 +153,10 @@ export const AddModelForm: FC<AddModelFormProps> = ({
     }
   };
 
-  // Button click handler for the Test Connection button
   const handleTestButtonClick = () => {
     testApiConnection(true);
   };
 
-  // Validate model ID format (provider/model-id)
   const validateModelId = (id: string) => {
     if (!id.includes("/")) {
       setModelIdError(
@@ -183,10 +175,9 @@ export const AddModelForm: FC<AddModelFormProps> = ({
   };
 
   const handleAddModel = async () => {
-    // Return early if already submitting to prevent multiple submissions
     if (submitting) return;
 
-    setSubmitting(true); // Set submitting state to true
+    setSubmitting(true);
 
     try {
       if (!newModelId.trim() || !newModelApiKey.trim()) {
@@ -198,16 +189,13 @@ export const AddModelForm: FC<AddModelFormProps> = ({
         return;
       }
 
-      // Always test the model before adding it
       setTestingModel(true);
       const testSuccess = await testApiConnection(true);
 
-      // Only proceed if the test is successful
       if (!testSuccess) {
-        return; // Exit without adding the model
+        return;
       }
 
-      // Extract model name from the part after the forward slash if name is empty
       let modelName = newModelName.trim();
       if (!modelName) {
         const parts = newModelId.split("/");
@@ -227,7 +215,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({
 
       onAdd(newModel);
     } finally {
-      setSubmitting(false); // Reset submitting state when done
+      setSubmitting(false);
     }
   };
 
@@ -258,10 +246,8 @@ export const AddModelForm: FC<AddModelFormProps> = ({
           )}
         </div>
 
-        {/* Recommended Model Banner - conditionally rendered */}
         {showRecommendation && !isRecommendedModelAdded && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 relative">
-            {/* Close button */}
             <button
               onClick={() => setShowRecommendation(false)}
               className="absolute top-2 right-2 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"

@@ -12,9 +12,7 @@ import {
 import { PromptType } from "../services/prompts";
 import { usePromptTemplates } from "../hooks/usePromptTemplates";
 
-// Types
 type SettingsPanelProps = {
-  // Add any props if needed
 };
 
 type TestPromptSectionProps = {
@@ -90,13 +88,10 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
   );
 };
 
-// Main Component
 const SettingsPanel: React.FC<SettingsPanelProps> = () => {
-  // Current active prompt type
   const [activePromptType, setActivePromptType] =
     useState<PromptType>("general");
 
-  // General prompt template state
   const {
     promptStates,
     updateTemplate,
@@ -114,18 +109,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     return saved || "";
   });
 
-  // Display settings
   const [autoSaveFlashcards, setAutoSaveFlashcards] = useState(() => {
-    return localStorage.getItem("autoSaveFlashcards") === "true"; // default to false
+    return localStorage.getItem("autoSaveFlashcards") === "true";
   });
   const [enableExpandableEditor, setEnableExpandableEditor] = useState(() => {
-    return localStorage.getItem("enableExpandableEditor") !== "false"; // default to true
+    return localStorage.getItem("enableExpandableEditor") !== "false";
   });
   const [showAnkiDebugPanel, setShowAnkiDebugPanel] = useState(() => {
-    return localStorage.getItem("showAnkiDebugPanel") === "true"; // default to false
+    return localStorage.getItem("showAnkiDebugPanel") === "true";
   });
   const [enableStreamingText, setEnableStreamingText] = useState(() => {
-    return localStorage.getItem("enableStreamingText") !== "false"; // default to true
+    return localStorage.getItem("enableStreamingText") !== "false";
   });
 
   const [testQuery, setTestQuery] = useState("");
@@ -137,33 +131,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   const ankiPromptState = promptStates.anki;
   const currentPromptState = promptStates[activePromptType];
 
-  // Fetch models and prompt templates from the backend API
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
       try {
-        // Fetch models
         const modelData = await fetchModels();
         setModels(modelData || []);
 
-        // Use a function form of setState to get latest state
         setSelectedModel((currentSelected) => {
-          // First check if the current selected model exists in the returned models
           if (
             currentSelected &&
             modelData &&
             modelData.some((model) => model.id === currentSelected)
           ) {
-            return currentSelected; // Keep current selection if it exists in the returned models
+            return currentSelected;
           }
 
-          // If current selected doesn't exist in returned models or there's no selection,
-          // default to the first model if available
           if (modelData && modelData.length > 0) {
             return modelData[0].id;
           }
 
-          return ""; // Return empty string if no models available
+          return "";
         });
 
         await loadTemplates();
@@ -180,14 +168,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     loadInitialData();
   }, [loadTemplates]);
 
-  // Add beforeunload event handler for unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (
         generalPromptState.hasUnsavedChanges ||
         ankiPromptState.hasUnsavedChanges
       ) {
-        // Standard way to show a confirmation dialog
         const confirmationMessage =
           "You have unsaved changes. Are you sure you want to leave?";
         e.returnValue = confirmationMessage;
@@ -195,7 +181,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       }
     };
 
-    // Add event listener if there are unsaved changes
     if (
       generalPromptState.hasUnsavedChanges ||
       ankiPromptState.hasUnsavedChanges
@@ -203,7 +188,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
       window.addEventListener("beforeunload", handleBeforeUnload);
     }
 
-    // Clean up
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
@@ -212,12 +196,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     ankiPromptState.hasUnsavedChanges,
   ]);
 
-  // Persist selected model to localStorage
   useEffect(() => {
     localStorage.setItem("selectedModel", selectedModel);
   }, [selectedModel]);
 
-  // Persist display settings to localStorage
   useEffect(() => {
     localStorage.setItem("autoSaveFlashcards", autoSaveFlashcards.toString());
     localStorage.setItem(
@@ -233,7 +215,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     enableStreamingText,
   ]);
 
-  // Handle saving prompt template to backend
   const handleSavePromptTemplate = (template: string) =>
     saveTemplate(activePromptType, template);
 
@@ -242,14 +223,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   };
 
   const handleAddModel = async (newModel: LLMModel) => {
-    // Check for duplicate IDs
     if (models.some((model) => model.id === newModel.id)) {
       alert("A model with this ID already exists. Please use a unique ID.");
       return;
     }
 
     try {
-      // Call API to add model
       await addModel({
         name: newModel.name.trim(),
         modelId: newModel.id.trim(),
@@ -257,7 +236,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
         apiEndpoint: newModel.apiEndpoint?.trim(),
       });
 
-      // Update local state after successful API call
       setModels((prev) => [...prev, newModel]);
       setSelectedModel(newModel.id);
       setIsAddingModel(false);
@@ -276,7 +254,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
         await deleteModel(modelId);
         setModels((prev) => prev.filter((model) => model.id !== modelId));
 
-        // If the removed model was selected, reset selection
         if (selectedModel === modelId) {
           const availableModels = models.filter(
             (model) => model.id !== modelId
@@ -344,7 +321,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     }
   };
 
-  // Display loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-10">
@@ -353,7 +329,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     );
   }
 
-  // Display error state
   if (error) {
     return (
       <div className="py-6">
@@ -413,7 +388,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
           title="Text Generation Settings"
           description="Customize how explanations are generated by editing the prompt templates."
         >
-          {/* Prompt Type Tabs */}
           <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
             <button
               className={`py-2 px-4 font-medium text-sm focus:outline-none ${
@@ -437,7 +411,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             </button>
           </div>
 
-          {/* Prompt Description */}
           <div className="mb-4">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {activePromptType === "general"
@@ -474,12 +447,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
 
       <Section title="Display Settings">
         <div className="space-y-3">
-          {/* <Toggle
-            label="Auto-save flashcards"
-            id="toggleAutoSave"
-            defaultChecked={autoSaveFlashcards}
-            onChange={(e) => setAutoSaveFlashcards(e.target.checked)}
-          /> */}
           <Toggle
             label="Enable expandable prompt editor"
             id="toggleExpandableEditor"
@@ -499,7 +466,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             onChange={(e) => {
               const newValue = e.target.checked;
               setShowAnkiDebugPanel(newValue);
-              // Force a refresh of any visible Anki debug panels
               const event = new CustomEvent("ankiDebugSettingChanged", {
                 detail: { showDebug: newValue },
               });

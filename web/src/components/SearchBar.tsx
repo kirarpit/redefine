@@ -4,9 +4,7 @@ import { FlashcardList } from "./Flashcard";
 import { useFlashcardManager } from "../hooks/useFlashcardManager";
 import { fetchSuggestions } from "../services/search";
 
-// Simple LocationMap component
 const LocationMap: React.FC<{ location: string }> = ({ location }) => {
-  // Embed Google Maps with the location query
   const mapUrl = `https://maps.google.com/maps?q=${encodeURIComponent(
     location
   )}&output=embed`;
@@ -99,7 +97,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [preventSuggestions, setPreventSuggestions] = useState<boolean>(false);
 
-  // Use the flashcard manager hook
   const flashcardManager = useFlashcardManager(
     wordData,
     setWordData,
@@ -107,22 +104,18 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setExportedFlashcards
   );
 
-  // Helper function to prevent suggestions
   const preventSuggestionsHandler = useCallback(() => {
     setSuggestions([]);
     setPreventSuggestions(true);
   }, []);
 
-  // Register the function to prevent suggestions
   useEffect(() => {
     if (setPreventSuggestionsRef) {
       setPreventSuggestionsRef(preventSuggestionsHandler);
     }
   }, [setPreventSuggestionsRef, preventSuggestionsHandler]);
 
-  // Focus the search input when component mounts or when tab changes to search
   useEffect(() => {
-    // Only focus if the activeTab is "search" or undefined (for first load)
     if (inputRef.current && (!activeTab || activeTab === "search")) {
       inputRef.current.focus();
     }
@@ -162,7 +155,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
   }, [showModelRequiredMessage]);
 
-  // Debounced autocomplete
   useEffect(() => {
     const fetchSuggestionsDebounced = async () => {
       if (!query.trim() || query.trim().length <= 1 || preventSuggestions) {
@@ -170,19 +162,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
         return;
       }
 
-      // Cancel previous request if it exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      // Create a new abort controller for this request
       abortControllerRef.current = new AbortController();
 
       try {
         const results = await fetchSuggestions(query);
         setSuggestions(results);
       } catch (error) {
-        // Only log if it's not an abort error
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.error("Error fetching suggestions:", error);
         }
@@ -190,10 +179,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
       }
     };
 
-    // Debounce the suggestions request
     const timeoutId = setTimeout(() => {
       fetchSuggestionsDebounced();
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => {
       clearTimeout(timeoutId);
@@ -208,7 +196,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setQuery(value);
     setSelectedIndex(null);
     setIsMouseActive(false);
-    // Enable suggestions when the user starts typing again
     setPreventSuggestions(false);
   };
 
@@ -256,7 +243,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     preventSuggestionsHandler();
   };
 
-  // Disable suggestions when search button is clicked directly
   const handleSearchButtonClick = (): void => {
     handleSearch(query.trim());
     preventSuggestionsHandler();

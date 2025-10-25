@@ -1,6 +1,5 @@
 import { FC, ReactNode } from "react";
 
-// Card component for containing content with optional title
 type CardProps = {
   title?: string;
   children: ReactNode;
@@ -20,7 +19,6 @@ export const Card: FC<CardProps> = ({ title, children, className = "" }) => (
   </div>
 );
 
-// Button component with variant support
 type ButtonProps = {
   onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
@@ -59,7 +57,6 @@ export const Button: FC<ButtonProps> = ({
   );
 };
 
-// Section component for layout
 type SectionProps = {
   title: string;
   description?: string;
@@ -82,7 +79,6 @@ export const Section: FC<SectionProps> = ({ title, description, children }) => (
   </div>
 );
 
-// Toggle component for on/off settings
 type ToggleProps = {
   label: string;
   id: string;

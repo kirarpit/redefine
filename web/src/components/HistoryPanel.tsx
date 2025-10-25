@@ -10,7 +10,6 @@ type HistoryPanelProps = {
   onNavigateToSearch: (query: string) => void;
 };
 
-// Reusable pagination component
 type PaginationControlsProps = {
   currentPage: number;
   totalPages: number;
@@ -26,7 +25,6 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
   nextPage,
   prevPage,
 }) => {
-  // Generate page numbers array
   const pageNumbers = [];
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
@@ -49,7 +47,6 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
           </button>
 
           {pageNumbers.map((number) => {
-            // Show limited page numbers with ellipsis for many pages
             if (
               totalPages <= 7 ||
               number === 1 ||
@@ -71,7 +68,6 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
               );
             }
 
-            // Add ellipsis
             if (
               (number === 2 && currentPage > 3) ||
               (number === totalPages - 1 && currentPage < totalPages - 2)
@@ -114,12 +110,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     "history"
   );
 
-  // Separate pagination state for each tab
   const [historyPage, setHistoryPage] = useState<number>(1);
   const [flashcardsPage, setFlashcardsPage] = useState<number>(1);
   const itemsPerPage = 10;
 
-  // Reset pagination when switching tabs
   const handleTabChange = (tab: "history" | "flashcards") => {
     setActiveTab(tab);
   };
@@ -176,12 +170,10 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     });
   };
 
-  // Sort search history by timestamp in descending order (newest first)
   const sortedHistory = [...searchHistory].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 
-  // History pagination values
   const historyTotalPages = Math.ceil(sortedHistory.length / itemsPerPage);
   const historyIndexOfLastItem = historyPage * itemsPerPage;
   const historyIndexOfFirstItem = historyIndexOfLastItem - itemsPerPage;
@@ -190,19 +182,16 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     historyIndexOfLastItem
   );
 
-  // History pagination handlers
   const paginateHistory = (pageNumber: number) => setHistoryPage(pageNumber);
   const nextHistoryPage = () =>
     setHistoryPage((prev) => Math.min(prev + 1, historyTotalPages));
   const prevHistoryPage = () => setHistoryPage((prev) => Math.max(prev - 1, 1));
 
-  // Sort flashcards by exportedAt date in descending order (newest first)
   const sortedFlashcards = [...exportedFlashcards].sort(
     (a, b) =>
       new Date(b.exportedAt).getTime() - new Date(a.exportedAt).getTime()
   );
 
-  // Flashcards pagination values
   const flashcardsTotalPages = Math.ceil(
     sortedFlashcards.length / itemsPerPage
   );
@@ -213,7 +202,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     flashcardsIndexOfLastItem
   );
 
-  // Flashcards pagination handlers
   const paginateFlashcards = (pageNumber: number) =>
     setFlashcardsPage(pageNumber);
   const nextFlashcardsPage = () =>
@@ -221,25 +209,21 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
   const prevFlashcardsPage = () =>
     setFlashcardsPage((prev) => Math.max(prev - 1, 1));
 
-  // Fetch flashcards from the database
   const fetchFlashcardsFromDatabase = async (): Promise<void> => {
     try {
       const flashcardsFromDB = await fetchFlashcards();
 
-      // Only update if we got data from the server
       if (Array.isArray(flashcardsFromDB) && flashcardsFromDB.length > 0) {
         console.log(
           `Fetched ${flashcardsFromDB.length} flashcards from database`
         );
 
-        // Get current flashcards from localStorage to avoid state dependency
         const currentFlashcardsString =
           localStorage.getItem("exportedFlashcards") || "[]";
         const currentFlashcards = JSON.parse(
           currentFlashcardsString
         ) as Flashcard[];
 
-        // Remove any duplicates within the database flashcards themselves
         const uniqueDbCards: Flashcard[] = [];
         flashcardsFromDB.forEach((dbCard: Flashcard) => {
           const isDuplicateInDb = uniqueDbCards.some(
@@ -254,11 +238,9 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
           }
         });
 
-        // Combine with local flashcards, avoiding duplicates
         const mergedFlashcards = [...currentFlashcards];
 
         uniqueDbCards.forEach((dbCard: Flashcard) => {
-          // Check if this card already exists in our local set
           const exists = mergedFlashcards.some(
             (localCard) =>
               localCard.front === dbCard.front &&
@@ -271,13 +253,11 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
           }
         });
 
-        // Only update if there are changes
         if (mergedFlashcards.length !== currentFlashcards.length) {
           console.log(
             `Updating flashcards: ${currentFlashcards.length} -> ${mergedFlashcards.length}`
           );
 
-          // Update state and localStorage
           setExportedFlashcards(mergedFlashcards);
           localStorage.setItem(
             "exportedFlashcards",
@@ -290,7 +270,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
     }
   };
 
-  // Fetch flashcards when component mounts
   useEffect(() => {
     fetchFlashcardsFromDatabase();
   }, []);
@@ -392,7 +371,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 ))}
               </div>
 
-              {/* History Pagination controls */}
               <PaginationControls
                 currentPage={historyPage}
                 totalPages={historyTotalPages}
@@ -458,10 +436,8 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                       </div>
                       <button
                         onClick={() => {
-                          // Calculate the actual index in the full exportedFlashcards array
                           const actualIndex =
                             flashcardsIndexOfFirstItem + index;
-                          // Use the actual index when removing the flashcard
                           removeFlashcard(actualIndex);
                         }}
                         className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 ml-2 p-1"
@@ -486,7 +462,6 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 ))}
               </div>
 
-              {/* Flashcards Pagination controls */}
               <PaginationControls
                 currentPage={flashcardsPage}
                 totalPages={flashcardsTotalPages}

@@ -1,7 +1,6 @@
 import { useState, useEffect, FC, useRef, KeyboardEvent } from "react";
 import { Button } from "./UIComponents";
 
-// Types
 export type PromptTemplateEditorProps = {
   promptTemplate: string;
   onPromptChange: (value: string) => void;
@@ -32,22 +31,18 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
   const [lineCount, setLineCount] = useState(0);
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
 
-  // Handle keyboard shortcuts in the textarea
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Check for command/ctrl + s to save
     if ((e.metaKey || e.ctrlKey) && e.key === "s") {
       e.preventDefault();
       onSaveTemplate(promptTemplate);
     }
 
-    // Escape is also handled by the global listener
     if (e.key === "Escape" && isExpanded) {
       e.preventDefault();
       setIsExpanded(false);
     }
   };
 
-  // Global escape key handler (works even when textarea isn't focused)
   useEffect(() => {
     const handleGlobalEscape = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape" && isExpanded) {
@@ -64,10 +59,8 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
     };
   }, [isExpanded]);
 
-  // Handle click outside to collapse expanded view
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // If we're expanded and clicking outside the modal content (but inside the overlay)
       if (
         isExpanded &&
         modalRef.current &&
@@ -88,24 +81,18 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
     };
   }, [isExpanded]);
 
-  // Adjust textarea height based on content
   useEffect(() => {
     const textarea = textareaRef.current;
     if (!textarea) return;
 
-    // Calculate line count
     const lines = promptTemplate.split("\n").length;
     setLineCount(lines);
 
     if (!isExpanded) {
-      // Reset height to auto to get the correct scrollHeight
       textarea.style.height = "auto";
 
-      // Calculate base height on content (24px per line + padding)
       const contentBasedHeight = lines * 24 + 40;
 
-      // For very short content (1-2 lines), use a modest minimum height
-      // For longer content, allow more space up to the maximum
       const minHeight = lines <= 2 ? 150 : 200;
       const newHeight = Math.min(Math.max(minHeight, contentBasedHeight), 400);
 
@@ -122,45 +109,37 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
       setIsExpanded(true);
       e.stopPropagation();
 
-      // Focus the textarea after expanding
       setTimeout(() => {
         textareaRef.current?.focus();
       }, 50);
     }
   };
 
-  // Handle click on the overlay background (to close the modal)
   const handleOverlayClick = (e: React.MouseEvent) => {
-    // Only close if the click is directly on the overlay, not its children
     if (e.target === editorRef.current) {
       setIsExpanded(false);
     }
   };
 
-  // Update line count when content changes
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onPromptChange(e.target.value);
     setLineCount(e.target.value.split("\n").length);
   };
 
-  // Handle reset button click to show confirmation
   const handleResetClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setShowResetConfirmation(true);
   };
 
-  // Handle confirm reset
   const handleConfirmReset = () => {
     onResetToDefault();
     setShowResetConfirmation(false);
   };
 
-  // Handle cancel reset
   const handleCancelReset = () => {
     setShowResetConfirmation(false);
   };
 
-  // Calculate modal dimensions based on content and screen size
   const getModalDimensions = () => {
     if (typeof window === "undefined") return {};
 
@@ -175,15 +154,11 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
           window.innerHeight * 0.8
         )}px`;
 
-    // For desktop, we use the container class to handle width
-    // For mobile, we explicitly set width to 95%
     return {
       height: modalHeight,
-      // Desktop width is handled by Tailwind classes in the container
     };
   };
 
-  // Components for Reset UI
   const ResetButton = ({ mobile = false }) => (
     <button
       onClick={handleResetClick}

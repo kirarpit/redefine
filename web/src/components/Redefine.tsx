@@ -7,7 +7,6 @@ import { searchExplanation } from "../services/search";
 import { getSelectedModelId } from "../services/models";
 import logo from "../assets/logo.svg";
 
-// Create a memo-wrapped component for streamed text to prevent re-renders
 const StreamedText = memo(function StreamedText({
   explanation,
   onStreamComplete,
@@ -21,24 +20,18 @@ const StreamedText = memo(function StreamedText({
   const containerRef = useRef<HTMLDivElement>(null);
   const fullTextRef = useRef<HTMLDivElement>(null);
 
-  // Check if streaming is enabled in localStorage
   const isStreamingEnabled =
     localStorage.getItem("enableStreamingText") !== "false";
 
   useEffect(() => {
-    // Calculate and set the height for the full content once when explanation changes
     if (explanation.length > 0 && fullTextRef.current && containerRef.current) {
-      // Copy the full text to our hidden div to measure its height
       fullTextRef.current.textContent = explanation;
-      // Set the container min-height to match the full content
       const fullHeight = fullTextRef.current.getBoundingClientRect().height;
       containerRef.current.style.minHeight = `${fullHeight}px`;
     }
 
-    // Start streaming when explanation changes
     if (explanation.length === 0) return;
 
-    // If streaming is disabled, show the entire text at once
     if (!isStreamingEnabled) {
       setStreamedText(explanation);
       setIsStreaming(false);
@@ -65,7 +58,6 @@ const StreamedText = memo(function StreamedText({
       }
     }, 10);
 
-    // Clean up interval on unmount or when explanation changes
     return () => {
       if (streamIntervalRef.current !== null) {
         clearInterval(streamIntervalRef.current);
@@ -76,13 +68,11 @@ const StreamedText = memo(function StreamedText({
 
   return (
     <div ref={containerRef} className="relative">
-      {/* The visible streamed text */}
       <div className="relative z-10">
         {streamedText}
         {isStreaming && <span className="animate-pulse">|</span>}
       </div>
 
-      {/* Hidden div with full content to calculate height - not visible but used for sizing */}
       <div
         ref={fullTextRef}
         className="absolute opacity-0 pointer-events-none"
@@ -156,12 +146,11 @@ const NavTab: React.FC<NavTabProps> = ({ id, label, activeTab, onClick }) => {
 const Redefine: React.FC = () => {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const savedMode = localStorage.getItem("darkMode");
-    if (savedMode !== null) {
+   if (savedMode !== null) {
       const parsedMode = JSON.parse(savedMode);
       return parsedMode;
     }
 
-    // Check system preference if no saved preference exists
     const prefersDarkMode = window.matchMedia(
       "(prefers-color-scheme: dark)"
     ).matches;
@@ -177,15 +166,11 @@ const Redefine: React.FC = () => {
     return savedTab ? (JSON.parse(savedTab) as TabType) : "search";
   });
 
-  // Lifted search state from SearchBar
   const [query, setQuery] = useState<string>("");
   const [wordData, setWordData] = useState<
     ExplanationEntry | { query: string; error: boolean } | null
   >(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-
-  // We no longer need to track streamedText at this level
-  // const [streamedText, setStreamedText] = useState<string>("");
 
   const [exportedFlashcards, setExportedFlashcards] = useState<Flashcard[]>(
     () => {
@@ -199,7 +184,6 @@ const Redefine: React.FC = () => {
       return history ? JSON.parse(history) : [];
     }
   );
-  // New state for notifications and loading
   const [notification, setNotification] = useState<{
     message: string;
     type: "success" | "error";
@@ -211,10 +195,8 @@ const Redefine: React.FC = () => {
   const [showModelRequiredMessage, setShowModelRequiredMessage] =
     useState<boolean>(false);
 
-  // Store the explanation text directly for the StreamedText component
   const [explanationText, setExplanationText] = useState<string>("");
 
-  // Reference to the preventSuggestions function in SearchBar
   const preventSuggestionsRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -226,7 +208,6 @@ const Redefine: React.FC = () => {
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
-  // Save state to localStorage
   useEffect(() => {
     localStorage.setItem(
       "exportedFlashcards",
@@ -246,7 +227,6 @@ const Redefine: React.FC = () => {
     setDarkMode((prev) => !prev);
   };
 
-  // Callback function for when streaming is complete
   const handleStreamComplete = useCallback(() => {
     setIsStreaming(false);
   }, []);
@@ -268,7 +248,6 @@ const Redefine: React.FC = () => {
     setIsStreaming(true);
     setExplanationText("");
 
-    // Set loading states
     setIsLoading(true);
     setIsLoadingFlashcards(true);
     setWordData(null);
@@ -282,11 +261,9 @@ const Redefine: React.FC = () => {
         return;
       }
 
-      // Start both API calls in parallel
       const generalPromise = searchExplanation(searchQuery, modelId, "general");
       const ankiPromise = searchExplanation(searchQuery, modelId, "anki");
 
-      // Update search history
       setSearchHistory((prev) => {
         const filteredHistory = prev.filter(
           (item) => item.query !== searchQuery
@@ -297,7 +274,6 @@ const Redefine: React.FC = () => {
         ].slice(0, 100);
       });
 
-      // Set up flags to track which responses have been received
       let generalDataReceived = false;
       let ankiDataReceived = false;
       let generalData: ExplanationEntry | null = null;
@@ -305,30 +281,25 @@ const Redefine: React.FC = () => {
         | Array<{ type: string; front: string; back: string }>
         | undefined = undefined;
 
-      // Set up a handler for when the general explanation is received
       generalPromise
         .then((data) => {
           generalData = data;
           generalDataReceived = true;
 
-          // Initialize wordData with general explanation data
           setWordData({
             ...data,
-            // If anki data has already arrived, use those flashcards, otherwise use empty array
             flashcards: ankiDataReceived ? ankiFlashcards || [] : [],
           });
 
           setExplanationText(data.explanation);
           setIsLoading(false);
 
-          // If this is the second response to arrive, we can consider the whole search complete
           if (ankiDataReceived) {
             setIsLoadingFlashcards(false);
           }
         })
         .catch((error) => {
           console.error("Error fetching general explanation:", error);
-          // Only set error state if anki data has not been received yet
           if (!ankiDataReceived) {
             setWordData({
               query: searchQuery,
@@ -344,19 +315,16 @@ const Redefine: React.FC = () => {
           }
           setIsLoading(false);
 
-          // If anki data was already received, we can consider the search complete
           if (ankiDataReceived) {
             setIsLoadingFlashcards(false);
           }
         });
 
-      // Set up a handler for when the anki flashcards are received
       ankiPromise
         .then((data) => {
           ankiFlashcards = data.flashcards;
           ankiDataReceived = true;
 
-          // If general data has already arrived, update the wordData with flashcards
           if (generalDataReceived && generalData) {
             setWordData((currentWordData) => {
               if (currentWordData && !("error" in currentWordData)) {
@@ -369,7 +337,6 @@ const Redefine: React.FC = () => {
             });
           }
 
-          // If this is the second response to arrive, we can consider the whole search complete
           if (generalDataReceived) {
             setIsLoadingFlashcards(false);
           }
@@ -378,20 +345,16 @@ const Redefine: React.FC = () => {
           console.error("Error fetching Anki flashcards:", error);
           ankiDataReceived = true;
 
-          // If general data has already arrived, we can consider the search complete
           if (generalDataReceived) {
             setIsLoadingFlashcards(false);
           }
         });
 
-      // Wait for both promises to settle (either resolve or reject)
       await Promise.allSettled([generalPromise, ankiPromise]);
 
-      // Ensure loading states are reset even if there were unexpected issues with promise handling
       if (isLoading) setIsLoading(false);
       if (isLoadingFlashcards) setIsLoadingFlashcards(false);
     } catch (error) {
-      // This catch block handles any errors that might occur outside of the promise handling
       console.error("Unexpected error in search handling:", error);
       setWordData({
         query: searchQuery,
@@ -410,14 +373,12 @@ const Redefine: React.FC = () => {
 
   const handleNavigateToSearch = (word: string): void => {
     setActiveTab("search");
-    // Call the preventSuggestions function if it's available
     if (preventSuggestionsRef.current) {
       preventSuggestionsRef.current();
     }
     handleSearch(word);
   };
 
-  // Function to set the preventSuggestions reference
   const setPreventSuggestionsRef = useCallback((fn: () => void) => {
     preventSuggestionsRef.current = fn;
   }, []);
@@ -490,7 +451,6 @@ const Redefine: React.FC = () => {
               setWordData={setWordData}
               isStreaming={isStreaming}
               setIsStreaming={setIsStreaming}
-              // We no longer pass streamedText, but instead pass the StreamedText component
               streamedTextComponent={
                 wordData && !("error" in wordData) ? (
                   <StreamedText

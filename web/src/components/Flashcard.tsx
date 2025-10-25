@@ -3,7 +3,6 @@ import { ExplanationEntry } from "../types";
 import { AnkiDebugPanel } from "./AnkiDebugPanel";
 import { FlashcardStateType } from "../hooks/useFlashcardManager";
 
-// Flashcard List Component
 type FlashcardListProps = {
   wordData: ExplanationEntry | { query: string; error: boolean } | null;
   flashcardState: FlashcardStateType;
@@ -58,17 +57,14 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
   refreshConnection,
   isLoadingFlashcards = false,
 }) => {
-  // Check if we have valid data to display
   if (!wordData || "error" in wordData) {
     return null;
   }
 
-  // If we have wordData but flashcards are empty and still loading, show loading state
   const showLoadingState =
     isLoadingFlashcards &&
     (!wordData.flashcards || wordData.flashcards.length === 0);
 
-  // Only exit early if we have no flashcards and we're not loading
   if (
     !showLoadingState &&
     (!wordData.flashcards || wordData.flashcards.length === 0)
@@ -76,7 +72,6 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
     return null;
   }
 
-  // Ensure flashcardState is not undefined
   if (!flashcardState) {
     console.warn("flashcardState is undefined in FlashcardList");
     return <div>Loading flashcards...</div>;
@@ -84,7 +79,6 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
 
   return (
     <div className="mt-8">
-      {/* Anki Debug Panel */}
       {ankiState && (
         <AnkiDebugPanel
           debugInfo={ankiState.debugInfo}
@@ -123,7 +117,6 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
             stroke="currentColor"
           >
             {ankiState && ankiState.ankiConnectAvailable ? (
-              // Icon for direct Anki connection
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -131,7 +124,6 @@ export const FlashcardList: React.FC<FlashcardListProps> = ({
                 d="M5 13l4 4L19 7"
               />
             ) : (
-              // Download icon for file export
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
