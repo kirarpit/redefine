@@ -2,6 +2,13 @@ import { useState, FC } from "react";
 import { LLMModel } from "../types";
 import { Card, Button } from "./UIComponents";
 import { testModel } from "../services/models";
+import {
+  ArrowTopRightOnSquareIcon,
+  CheckIcon,
+  ExclamationCircleIcon,
+  InformationCircleIcon,
+  XMarkIcon,
+} from "./icons";
 
 export const RECOMMENDED_MODEL_ID = "gemini/gemini-2.0-flash";
 
@@ -40,20 +47,7 @@ export const ModelList: FC<ModelListProps> = ({
         <div className="flex items-center gap-2">
           {model.id === selectedModel && (
             <div className="flex items-center text-xs text-blue-700 dark:text-blue-300">
-              <svg
-                className="w-4 h-4 mr-0.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+              <CheckIcon className="w-4 h-4 mr-0.5" />
               Active
             </div>
           )}
@@ -253,36 +247,10 @@ export const AddModelForm: FC<AddModelFormProps> = ({
               className="absolute top-2 right-2 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               aria-label="Close recommendation"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <XMarkIcon className="w-4 h-4" />
             </button>
             <div className="flex items-start">
-              <svg
-                className="w-5 h-5 text-blue-500 dark:text-blue-400 mr-2 flex-shrink-0 mt-0.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <InformationCircleIcon className="w-5 h-5 text-blue-500 dark:text-blue-400 mr-2 flex-shrink-0 mt-0.5" />
               <div>
                 <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">
                   Recommended Model
@@ -311,20 +279,7 @@ export const AddModelForm: FC<AddModelFormProps> = ({
                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center"
                   >
                     Get free API key
-                    <svg
-                      className="w-3 h-3 ml-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                      />
-                    </svg>
+                    <ArrowTopRightOnSquareIcon className="w-3 h-3 ml-1" />
                   </a>
                 </div>
               </div>
@@ -398,35 +353,9 @@ export const AddModelForm: FC<AddModelFormProps> = ({
               }`}
             >
               {testResult.success ? (
-                <svg
-                  className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+                <CheckIcon className="w-5 h-5 text-green-500 dark:text-green-400 mr-2 flex-shrink-0 mt-0.5" />
               ) : (
-                <svg
-                  className="w-5 h-5 text-red-500 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+                <ExclamationCircleIcon className="w-5 h-5 text-red-500 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5" />
               )}
               <div className="flex-1">
                 <p

@@ -1,5 +1,6 @@
 import { useState, useEffect, FC, useRef, KeyboardEvent } from "react";
 import { Button } from "./UIComponents";
+import { ArrowPathIcon, CheckIcon, XMarkIcon } from "./icons";
 
 export type PromptTemplateEditorProps = {
   promptTemplate: string;
@@ -165,20 +166,7 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
       className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700/30 flex items-center"
       title="Reset to default template"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-3.5 w-3.5 mr-1"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-        />
-      </svg>
+      <ArrowPathIcon className="h-3.5 w-3.5 mr-1" />
       <span>Reset</span>
     </button>
   );
@@ -220,20 +208,7 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
               )}
               {saveSuccess && (
                 <span className="text-xs text-green-500 dark:text-green-400 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md">
-                  <svg
-                    className="w-3 h-3 inline-block mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+                  <CheckIcon className="w-3 h-3 inline-block mr-1" />
                   Saved!
                 </span>
               )}
@@ -307,20 +282,7 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
                 )}
                 {saveSuccess && (
                   <span className="text-xs text-green-500 dark:text-green-400 px-1 sm:px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md">
-                    <svg
-                      className="w-3 h-3 inline-block mr-0 sm:mr-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                    <CheckIcon className="w-3 h-3 inline-block mr-0 sm:mr-1" />
                     <span className="hidden sm:inline">Saved!</span>
                   </span>
                 )}
@@ -341,20 +303,7 @@ const PromptTemplateEditor: FC<PromptTemplateEditorProps> = ({
                     className="text-xs text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700/30 flex items-center"
                     title="Close editor (Esc)"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-3.5 w-3.5 mr-1"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <XMarkIcon className="h-3.5 w-3.5 mr-1" />
                     <span className="hidden sm:inline">Close</span>
                   </button>
                   <Button

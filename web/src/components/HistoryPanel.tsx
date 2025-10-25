@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { Flashcard, SearchHistoryItem } from "../types";
 import { deleteFlashcard, fetchFlashcards } from "../services/flashcards";
+import {
+  ArchiveBoxIcon,
+  ArrowLeftIcon,
+  ClockIcon,
+  TrashIcon,
+} from "./icons";
 
 type HistoryPanelProps = {
   searchHistory: SearchHistoryItem[];
@@ -317,20 +323,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
           {searchHistory.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-12 w-12 mx-auto mb-3 text-gray-400 dark:text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <ClockIcon className="h-12 w-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" />
               <p>Your search history will appear here</p>
             </div>
           ) : (
@@ -352,20 +345,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         onNavigateToSearch(item.query);
                       }}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                        />
-                      </svg>
+                      <ArrowLeftIcon className="h-5 w-5" />
                     </button>
                   </div>
                 ))}
@@ -393,20 +373,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
 
           {exportedFlashcards.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-12 w-12 mx-auto mb-3 text-gray-400 dark:text-gray-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
+              <ArchiveBoxIcon className="h-12 w-12 mx-auto mb-3 text-gray-400 dark:text-gray-600" />
               <p>You haven't exported any flashcards yet</p>
             </div>
           ) : (
@@ -442,20 +409,7 @@ const HistoryPanel: React.FC<HistoryPanelProps> = ({
                         }}
                         className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 ml-2 p-1"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
+                        <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
