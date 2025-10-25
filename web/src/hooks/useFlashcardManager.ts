@@ -1,6 +1,6 @@
 import { Dispatch, MouseEvent, SetStateAction, useEffect, useState } from "react";
 import { ExplanationEntry, Flashcard } from "../types";
-import { useAnkiService } from "../components/AnkiService";
+import { useAnkiService } from "./useAnkiService";
 import { exportFlashcards, FlashcardExportResponse } from "../services/flashcards";
 
 export type FlashcardStateType = {

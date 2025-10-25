@@ -1,6 +1,6 @@
 import React from "react";
 import { ExplanationEntry } from "../types";
-import { AnkiDebugPanel } from "./AnkiService";
+import { AnkiDebugPanel } from "./AnkiDebugPanel";
 import { FlashcardStateType } from "../hooks/useFlashcardManager";
 
 // Flashcard List Component
