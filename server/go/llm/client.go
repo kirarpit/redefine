@@ -2,6 +2,7 @@ package llm
 
 import (
 	"fmt"
+	"redefine/server/promptutils"
 	"redefine/server/types"
 	"strings"
 
@@ -89,7 +90,8 @@ func GenerateExplanation(query string, modelID string, getModel ModelGetter, get
 		return nil, fmt.Errorf("failed to get %s prompt template: %w", promptType, err)
 	}
 
-	prompt := strings.Replace(promptTemplate, "{query}", query, -1)
+	prompt := strings.ReplaceAll(promptTemplate, "{query}", query)
+	prompt = promptutils.AppendOutputInstructions(prompt, promptType)
 
 	cacheKey := fmt.Sprintf("%s:%s:%s", modelID, promptType, prompt)
 	if entry, ok := responseCache[cacheKey]; ok {

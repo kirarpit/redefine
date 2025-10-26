@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config";
+import { PromptType } from "./prompts";
 import { LLMModel } from "../types";
 
 export const fetchModels = async (): Promise<LLMModel[]> => {
@@ -73,7 +74,8 @@ export const testModel = async (
   prompt: string,
   apiKey?: string,
   apiEndpoint?: string,
-  skipLookup: boolean = false
+  skipLookup: boolean = false,
+  promptType: PromptType = "general"
 ): Promise<string> => {
   try {
     const response = await fetch(
@@ -88,6 +90,7 @@ export const testModel = async (
           prompt: prompt.trim(),
           apiKey: apiKey?.trim(),
           apiEndpoint: apiEndpoint?.trim(),
+          promptType,
         }),
       }
     );

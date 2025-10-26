@@ -14,13 +14,3 @@ prompt:
     - Only the first card may be with a double cloze deletion (c1 and c2) so that the objective isn't just to guess the word, but to guess the key word that defines it in the sentence context.
 
     The query is "{query}".
-
-    Output the flashcards in the following YAML structure:
-
-    ```yaml
-    flashcards:
-      - type: one of [cloze, basic, reversed]
-        front: >
-          <string>
-        back: <string>  # not required for cloze
-    ```

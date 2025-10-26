@@ -305,7 +305,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
     const finalPrompt = promptTemplate.replace("{query}", testQuery);
 
     try {
-      const response = await testModel(selectedModel, finalPrompt);
+      const response = await testModel(
+        selectedModel,
+        finalPrompt,
+        undefined,
+        undefined,
+        false,
+        activePromptType
+      );
       setGeneratedExplanation(response);
       setIsGenerating(false);
     } catch (error) {

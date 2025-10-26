@@ -10,16 +10,3 @@ prompt:
     - Provide examples (or quotes when appropriate) to help understand and retain the concept.
 
     The query is "{query}".
-
-    Output the response in the following YAML structure.
-
-    ```yaml
-    query: <string>
-    type: <string>
-    explanation: >\s<string>
-    pronunciation: >\s<string|null> # key words as a single string
-    related_items:
-      - <string>
-    quotes:
-      - >\s<string>
-    ```

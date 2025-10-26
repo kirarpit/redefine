@@ -6,6 +6,7 @@ import (
 	"redefine/server/db"
 	"redefine/server/llm"
 	_ "redefine/server/llm/providers"
+	"redefine/server/promptutils"
 	"redefine/server/types"
 	"strconv"
 
@@ -118,6 +119,7 @@ func testModel(c *gin.Context) {
 		ApiKey      string `json:"apiKey"`
 		ApiEndpoint string `json:"apiEndpoint"`
 		Name        string `json:"name"`
+		PromptType  string `json:"promptType"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -128,6 +130,10 @@ func testModel(c *gin.Context) {
 	if request.ModelId == "" || request.Prompt == "" {
 		c.JSON(400, gin.H{"error": "Missing required fields"})
 		return
+	}
+
+	if request.PromptType == "" {
+		request.PromptType = "general"
 	}
 
 	skipLookup, _ := strconv.ParseBool(c.Query("skipLookup"))
@@ -162,7 +168,12 @@ func testModel(c *gin.Context) {
 		}
 	}
 
-	response, err = llm.TestPrompt(model, request.Prompt, !skipLookup)
+	promptToSend := request.Prompt
+	if !skipLookup {
+		promptToSend = promptutils.AppendOutputInstructions(promptToSend, request.PromptType)
+	}
+
+	response, err = llm.TestPrompt(model, promptToSend, !skipLookup)
 
 	if err != nil {
 		log.Printf("Error testing LLM model: %v", err)
