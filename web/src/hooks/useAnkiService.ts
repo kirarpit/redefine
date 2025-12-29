@@ -9,6 +9,7 @@ import {
   downloadAnkiFile,
   generateAnkiTSV,
   getAvailableDecks,
+  REDEFINE_DECK_NAME,
 } from "../services/anki";
 
 export const useAnkiService = () => {
@@ -166,8 +167,16 @@ export const useAnkiService = () => {
         }
       }
 
-      const deckName = "Redefine";
+      // Use constant to ensure we only work with the Redefine deck
+      const deckName = REDEFINE_DECK_NAME;
       const allTags = ["redefine", ...(tags || [])];
+
+      // Safety check: ensure deck name is valid
+      if (!deckName || deckName.trim().length === 0) {
+        const errorMessage = "Invalid deck name. Cannot export flashcards.";
+        logToAnki(errorMessage, "error");
+        return { success: false, errorMessage };
+      }
 
       const deckExists = ankiState.decksAvailable.includes(deckName);
       if (!deckExists) {

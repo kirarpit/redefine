@@ -48,9 +48,6 @@ volumes:
 Create a `.env` file with a salt key:
 
 ```bash
-# Download the example file
-curl -O https://raw.githubusercontent.com/kirarpit/redefine/main/.env.example
-
 # Generate a salt key and save to .env
 echo "SALT_KEY=$(openssl rand -base64 32)" > .env
 ```

@@ -1,5 +1,8 @@
 import { Dispatch, SetStateAction } from "react";
 
+// Constant for the deck name to prevent typos and ensure consistency
+export const REDEFINE_DECK_NAME = "Redefine";
+
 export type AnkiDebugInfo = {
   lastChecked: string;
   error: string | null;
@@ -205,6 +208,12 @@ export const createDeckIfNotExists = async (
   ) => void,
   availableDecks?: string[]
 ): Promise<boolean> => {
+  // Safety check: ensure deck name is valid and not empty
+  if (!deckName || typeof deckName !== "string" || deckName.trim().length === 0) {
+    logFunc(`Invalid deck name provided: ${deckName}`, "error");
+    return false;
+  }
+
   try {
     let decks = availableDecks;
     if (!decks || !decks.length) {
@@ -260,7 +269,7 @@ export const createDeckIfNotExists = async (
 
 export const addFlashcardsToAnki = async (
   flashcards: { front: string; back: string }[],
-  deckName: string = "Redefine",
+  deckName: string = REDEFINE_DECK_NAME,
   modelName: string = "Basic",
   tags: string[] = [],
   setAnkiState?: Dispatch<SetStateAction<AnkiState>>,
@@ -281,6 +290,12 @@ export const addFlashcardsToAnki = async (
         : addLog(setAnkiState, message, level, details);
     }
   };
+
+  // Safety check: ensure deck name is valid and not empty
+  if (!deckName || typeof deckName !== "string" || deckName.trim().length === 0) {
+    logFunc(`Invalid deck name provided: ${deckName}`, "error");
+    return false;
+  }
 
   try {
     logFunc(
