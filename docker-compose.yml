@@ -1,17 +1,19 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  redefine:
+    image: ghcr.io/kirarpit/redefine:latest
+    container_name: redefine
     ports:
       - "5612:5000"
     environment:
       - SALT_KEY=${SALT_KEY}
     volumes:
-      - ./data:/data
+      - redefine_data:/data
     read_only: true
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+
+volumes:
+  redefine_data:
