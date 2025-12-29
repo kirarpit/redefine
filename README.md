@@ -2,6 +2,8 @@
 
 **AI-powered word learning, reimagined.**
 
+![Redefine Screenshot](screenshot.png)
+
 Redefine is an intelligent vocabulary learning app that uses LLMs to generate rich explanations and Anki flashcards for any word, phrase, or concept.
 
 ## ✨ Features
