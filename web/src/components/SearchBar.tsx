@@ -7,7 +7,6 @@ import {
   CheckCircleIcon,
   CloseIcon,
   SearchIcon,
-  SpeakerWaveIcon,
   SpinnerIcon,
   WarningIcon,
 } from "./icons";
@@ -381,12 +380,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 <span className="ml-3 text-gray-500 dark:text-gray-400 text-sm font-normal italic">
                   {wordData.pronunciation}
                 </span>
-                <button
-                  className="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Pronounce query"
-                >
-                  <SpeakerWaveIcon className="h-5 w-5" />
-                </button>
               </div>
 
               <div className="text-sm text-blue-500 dark:text-blue-400 font-semibold uppercase tracking-wide mb-3">

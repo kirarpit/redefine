@@ -95,12 +95,12 @@ Open [http://localhost:5612](http://localhost:5612) and add your LLM in Settings
 1. Navigate to **Settings**
 2. Click **Add Your First Model**
 3. Enter your model details:
-   - **Model ID**: `gemini/gemini-2.0-flash` (recommended)
+   - **Model ID**: `gemini/gemini-2.0-flash` or `gemini/gemini-2.5-flash-lite` (recommended)
    - **API Key**: Your API key
 
 ### Recommended: Gemini (Free)
 
-We recommend **`gemini/gemini-2.0-flash`** — it's fast, high-quality, and has a generous free tier.
+We recommend **`gemini/gemini-2.0-flash`** or **`gemini/gemini-2.5-flash-lite`** — both are fast, high-quality, and have generous free tiers.
 
 👉 [Get a free API key from Google AI Studio](https://aistudio.google.com/apikey)
 

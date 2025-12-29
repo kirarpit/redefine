@@ -11,6 +11,6 @@ prompt:
     - Use multiple sentence contexts to reinforce different shades of meaning. Especially when a word can be used as different part-of-speech. Try to cover them all across cards.
     - Add subtle clues or disqualifiers to eliminate near-synonyms.
     - Use cloze deletions for clean, focused recall.
-    - Only the first card may be with a double cloze deletion (c1 and c2) so that the objective isn't just to guess the word, but to guess the key word that defines it in the sentence context.
+    - Only the last card may be with a double cloze deletion (c1 and c2) so that the objective isn't just to guess the word, but to guess the key word that defines it in the sentence context.
 
     The query is "{query}".
