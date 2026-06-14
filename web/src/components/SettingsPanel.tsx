@@ -11,6 +11,7 @@ import {
 } from "../services/models";
 import { PromptType } from "../services/prompts";
 import { usePromptTemplates } from "../hooks/usePromptTemplates";
+import { API_BASE_URL } from "../config";
 
 type SettingsPanelProps = {
 };
@@ -87,6 +88,131 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
     </div>
   );
 };
+
+// ---------------------------------------------------------------------------
+// AnkiWeb sync section
+// ---------------------------------------------------------------------------
+
+type SyncState =
+  | { phase: "loading" }
+  | { phase: "disconnected"; error?: string }
+  | { phase: "logging-in" }
+  | { phase: "connected"; lastSync: { status: string; error: string | null } };
+
+async function ankiProxyCall(action: string, params: Record<string, unknown> = {}) {
+  const res = await fetch(`${API_BASE_URL}/anki/proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, version: 6, params }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.result;
+}
+
+const AnkiWebSyncSection: FC = () => {
+  const [syncState, setSyncState] = useState<SyncState>({ phase: "loading" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    ankiProxyCall("syncStatus")
+      .then((result: any) => {
+        if (result?.connected) {
+          setSyncState({ phase: "connected", lastSync: result.lastSync });
+        } else {
+          setSyncState({ phase: "disconnected" });
+        }
+      })
+      .catch(() => setSyncState({ phase: "disconnected" }));
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSyncState({ phase: "logging-in" });
+    try {
+      await ankiProxyCall("ankiwebLogin", { username: email, password });
+      setEmail("");
+      setPassword("");
+      const status = await ankiProxyCall("syncStatus");
+      setSyncState({ phase: "connected", lastSync: (status as any).lastSync });
+    } catch (err) {
+      setSyncState({
+        phase: "disconnected",
+        error: err instanceof Error ? err.message : "Login failed",
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    await ankiProxyCall("ankiwebLogout").catch(() => {});
+    setSyncState({ phase: "disconnected" });
+  };
+
+  if (syncState.phase === "loading") {
+    return <p className="text-sm text-gray-500 dark:text-gray-400">Checking AnkiWeb status…</p>;
+  }
+
+  if (syncState.phase === "connected") {
+    const { lastSync } = syncState;
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Connected to AnkiWeb</span>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Cards sync automatically after each "Send to Anki". Last sync:{" "}
+          {lastSync.status === "ok"
+            ? "succeeded"
+            : lastSync.status === "error"
+            ? `failed — ${lastSync.error}`
+            : "not yet synced this session"}
+        </p>
+        <button
+          onClick={handleLogout}
+          className="text-xs text-red-500 dark:text-red-400 hover:underline"
+        >
+          Disconnect
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleLogin} className="space-y-3">
+      {syncState.phase === "disconnected" && syncState.error && (
+        <p className="text-sm text-red-600 dark:text-red-400">{syncState.error}</p>
+      )}
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Sign in to AnkiWeb so cards are pushed to your account automatically
+        whenever you tap "Send to Anki".
+      </p>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="AnkiWeb email"
+        required
+        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="AnkiWeb password"
+        required
+        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <Button type="submit" disabled={syncState.phase === "logging-in"}>
+        {syncState.phase === "logging-in" ? "Connecting…" : "Connect to AnkiWeb"}
+      </Button>
+    </form>
+  );
+};
+
+// ---------------------------------------------------------------------------
 
 const SettingsPanel: React.FC<SettingsPanelProps> = () => {
   const [activePromptType, setActivePromptType] =
@@ -480,6 +606,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = () => {
             }}
           />
         </div>
+      </Section>
+
+      <Section title="AnkiWeb Sync">
+        <AnkiWebSyncSection />
       </Section>
 
       <Section title="App Information">

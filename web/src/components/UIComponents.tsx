@@ -20,7 +20,8 @@ export const Card: FC<CardProps> = ({ title, children, className = "" }) => (
 );
 
 type ButtonProps = {
-  onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (e?: React.MouseEvent<HTMLButtonElement>) => void;
+  type?: "button" | "submit" | "reset";
   disabled?: boolean;
   variant?: "primary" | "secondary" | "danger";
   children: ReactNode;
@@ -29,6 +30,7 @@ type ButtonProps = {
 
 export const Button: FC<ButtonProps> = ({
   onClick,
+  type = "button",
   disabled = false,
   variant = "primary",
   children,
@@ -48,6 +50,7 @@ export const Button: FC<ButtonProps> = ({
 
   return (
     <button
+      type={type}
       onClick={onClick}
       disabled={disabled}
       className={`${baseStyles} ${variantStyles[variant]} ${className}`}
