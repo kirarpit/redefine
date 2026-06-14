@@ -17,7 +17,9 @@ import json
 import logging
 import os
 import re
+import shutil
 import threading
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -87,6 +89,33 @@ def _make_auth(hkey: str) -> SyncAuth:
     return auth
 
 
+# Enum values from SyncCollectionResponse.Required
+_NO_CHANGES = 0
+_NORMAL_SYNC = 1
+_FULL_SYNC = 2   # must choose direction
+_FULL_DOWNLOAD = 3
+_FULL_UPLOAD = 4
+
+BACKUP_DIR = Path(COLLECTION_PATH).parent / "backups"
+MAX_BACKUPS = 10
+
+
+def _backup_collection() -> None:
+    src = Path(COLLECTION_PATH)
+    if not src.exists():
+        return
+    BACKUP_DIR.mkdir(exist_ok=True)
+    stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    dst = BACKUP_DIR / f"collection-{stamp}.anki2"
+    shutil.copy2(src, dst)
+    log.info("Backed up collection to %s", dst.name)
+    # Prune oldest backups beyond MAX_BACKUPS
+    backups = sorted(BACKUP_DIR.glob("collection-*.anki2"))
+    for old in backups[:-MAX_BACKUPS]:
+        old.unlink()
+        log.info("Removed old backup %s", old.name)
+
+
 # ---------------------------------------------------------------------------
 # Sync (runs in a background thread so addNote returns immediately)
 # ---------------------------------------------------------------------------
@@ -99,15 +128,45 @@ def _sync_in_background() -> None:
 
 
 def _do_sync(hkey: str) -> None:
-    global _last_sync
+    global _last_sync, _col
     log.info("Starting AnkiWeb sync...")
     with _col_lock:
         col = get_col()
         try:
+            _backup_collection()
             auth = _make_auth(hkey)
-            col.sync_collection(auth, sync_media=False)
-            _last_sync = {"status": "ok", "error": None}
-            log.info("AnkiWeb sync completed")
+            output = col.sync_collection(auth, sync_media=False)
+            required = output.required
+
+            if required in (_NO_CHANGES, _NORMAL_SYNC):
+                _last_sync = {"status": "ok", "error": None}
+                log.info("AnkiWeb sync completed (normal)")
+
+            elif required == _FULL_SYNC:
+                # Collections have never shared history. Always download from
+                # AnkiWeb so the user's existing cards are never overwritten.
+                log.info("Full sync required — downloading from AnkiWeb to preserve existing cards")
+                col.close_for_full_sync()
+                col.full_upload_or_download(auth=auth, server_usn=None, upload=False)
+                # The collection file was replaced; reopen on next use.
+                _col = None
+                _last_sync = {"status": "ok", "error": None}
+                log.info("Full download from AnkiWeb completed")
+
+            elif required in (_FULL_DOWNLOAD, _FULL_UPLOAD):
+                # Server explicitly directed a one-way sync.
+                upload = required == _FULL_UPLOAD
+                log.info("Directed full sync: upload=%s", upload)
+                col.close_for_full_sync()
+                col.full_upload_or_download(auth=auth, server_usn=None, upload=upload)
+                _col = None
+                _last_sync = {"status": "ok", "error": None}
+                log.info("Directed full sync completed")
+
+            else:
+                _last_sync = {"status": "ok", "error": None}
+                log.info("Sync completed (required=%d)", required)
+
         except Exception as exc:
             _last_sync = {"status": "error", "error": str(exc)}
             log.error("AnkiWeb sync failed: %s", exc)
