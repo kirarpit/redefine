@@ -138,6 +138,13 @@ def _do_sync(hkey: str) -> None:
             output = col.sync_collection(auth, sync_media=False)
             required = output.required
 
+            # AnkiWeb uses load balancing: new_endpoint is the host to use for
+            # full syncs. Must update auth before calling full_upload_or_download
+            # or we'll hit the wrong server and get HTTP 400.
+            if output.new_endpoint:
+                auth.endpoint = output.new_endpoint
+                log.info("Full sync endpoint: %s", output.new_endpoint)
+
             if required in (_NO_CHANGES, _NORMAL_SYNC):
                 _last_sync = {"status": "ok", "error": None}
                 log.info("AnkiWeb sync completed (normal)")
@@ -148,20 +155,26 @@ def _do_sync(hkey: str) -> None:
                 log.info("Full sync required — downloading from AnkiWeb to preserve existing cards")
                 col.close_for_full_sync()
                 col.full_upload_or_download(auth=auth, server_usn=None, upload=False)
-                # The collection file was replaced; reopen on next use.
-                _col = None
+                # full_upload_or_download(upload=False) calls reopen() internally;
+                # _col is still valid — do NOT set to None.
                 _last_sync = {"status": "ok", "error": None}
                 log.info("Full download from AnkiWeb completed")
 
-            elif required in (_FULL_DOWNLOAD, _FULL_UPLOAD):
-                # Server explicitly directed a one-way sync.
-                upload = required == _FULL_UPLOAD
-                log.info("Directed full sync: upload=%s", upload)
+            elif required == _FULL_DOWNLOAD:
+                log.info("Directed full download from AnkiWeb")
                 col.close_for_full_sync()
-                col.full_upload_or_download(auth=auth, server_usn=None, upload=upload)
+                col.full_upload_or_download(auth=auth, server_usn=None, upload=False)
+                _last_sync = {"status": "ok", "error": None}
+                log.info("Directed full download completed")
+
+            elif required == _FULL_UPLOAD:
+                log.info("Directed full upload to AnkiWeb")
+                col.close_for_full_sync()
+                col.full_upload_or_download(auth=auth, server_usn=None, upload=True)
+                # upload=True does NOT reopen; drop so get_col() reopens fresh.
                 _col = None
                 _last_sync = {"status": "ok", "error": None}
-                log.info("Directed full sync completed")
+                log.info("Directed full upload completed")
 
             else:
                 _last_sync = {"status": "ok", "error": None}
