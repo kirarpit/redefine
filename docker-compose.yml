@@ -6,6 +6,8 @@ services:
       - "5612:5000"
     environment:
       - SALT_KEY=${SALT_KEY}
+      # Uncomment to enable AnkiWeb sync via the anki-server sidecar below.
+      # - ANKI_CONNECT_URL=http://anki-server:8765
     volumes:
       - redefine_data:/data
     read_only: true
@@ -14,6 +16,20 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    # depends_on:
+    #   - anki-server
+
+  # Optional: headless Anki sidecar for automatic AnkiWeb sync.
+  # Enables "Send to Anki" → cards appear in AnkiDroid without any phone apps.
+  # To enable: uncomment this service, and uncomment ANKI_CONNECT_URL above.
+  #
+  # anki-server:
+  #   build: ./anki-server
+  #   container_name: anki-server
+  #   volumes:
+  #     - anki_data:/data
+  #   restart: unless-stopped
 
 volumes:
   redefine_data:
+  # anki_data:

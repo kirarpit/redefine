@@ -95,6 +95,7 @@ const TestPromptSection: FC<TestPromptSectionProps> = ({
 
 type SyncState =
   | { phase: "loading" }
+  | { phase: "unavailable" }
   | { phase: "disconnected"; error?: string }
   | { phase: "logging-in" }
   | { phase: "connected"; lastSync: { status: string; error: string | null } };
@@ -115,6 +116,7 @@ const AnkiWebSyncSection: FC = () => {
   const [syncState, setSyncState] = useState<SyncState>({ phase: "loading" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     ankiProxyCall("syncStatus")
@@ -125,7 +127,14 @@ const AnkiWebSyncSection: FC = () => {
           setSyncState({ phase: "disconnected" });
         }
       })
-      .catch(() => setSyncState({ phase: "disconnected" }));
+      .catch((err: Error) => {
+        // HTTP 5xx means the proxy can't reach the anki-server sidecar.
+        if (/HTTP 5\d\d/.test(err.message)) {
+          setSyncState({ phase: "unavailable" });
+        } else {
+          setSyncState({ phase: "disconnected" });
+        }
+      });
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -135,6 +144,7 @@ const AnkiWebSyncSection: FC = () => {
       await ankiProxyCall("ankiwebLogin", { username: email, password });
       setEmail("");
       setPassword("");
+      setShowPassword(false);
       const status = await ankiProxyCall("syncStatus");
       setSyncState({ phase: "connected", lastSync: (status as any).lastSync });
     } catch (err) {
@@ -151,64 +161,139 @@ const AnkiWebSyncSection: FC = () => {
   };
 
   if (syncState.phase === "loading") {
-    return <p className="text-sm text-gray-500 dark:text-gray-400">Checking AnkiWeb status…</p>;
+    return (
+      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+        Checking AnkiWeb connection…
+      </div>
+    );
+  }
+
+  if (syncState.phase === "unavailable") {
+    return (
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-4 space-y-2">
+        <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">AnkiWeb sync not configured</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Add the <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded text-xs">anki-server</code> sidecar to your Docker Compose to enable automatic AnkiWeb sync.
+        </p>
+        <a
+          href="https://github.com/kirarpit/redefine#ankiweb-sync"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-sm text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          Setup instructions →
+        </a>
+      </div>
+    );
   }
 
   if (syncState.phase === "connected") {
     const { lastSync } = syncState;
+    const syncStatusText =
+      lastSync.status === "ok"
+        ? "Last sync succeeded."
+        : lastSync.status === "error"
+        ? `Last sync failed: ${lastSync.error}`
+        : "Not yet synced this session.";
+
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Connected to AnkiWeb</span>
+      <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold">✓</span>
+            <span className="text-sm font-medium text-green-800 dark:text-green-300">Connected to AnkiWeb</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+          >
+            Disconnect
+          </button>
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Cards sync automatically after each "Send to Anki". Last sync:{" "}
-          {lastSync.status === "ok"
-            ? "succeeded"
-            : lastSync.status === "error"
-            ? `failed — ${lastSync.error}`
-            : "not yet synced this session"}
+        <p className="text-xs text-green-700 dark:text-green-400">
+          Cards sync to your account automatically after each "Send to Anki". {syncStatusText}
         </p>
-        <button
-          onClick={handleLogout}
-          className="text-xs text-red-500 dark:text-red-400 hover:underline"
-        >
-          Disconnect
-        </button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleLogin} className="space-y-3">
-      {syncState.phase === "disconnected" && syncState.error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{syncState.error}</p>
-      )}
+    <div className="space-y-4">
       <p className="text-sm text-gray-600 dark:text-gray-400">
-        Sign in to AnkiWeb so cards are pushed to your account automatically
-        whenever you tap "Send to Anki".
+        Connect to{" "}
+        <a href="https://ankiweb.net" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">
+          AnkiWeb
+        </a>{" "}
+        to sync cards to AnkiDroid automatically whenever you tap "Send to Anki".
       </p>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="AnkiWeb email"
-        required
-        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="AnkiWeb password"
-        required
-        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <Button type="submit" disabled={syncState.phase === "logging-in"}>
-        {syncState.phase === "logging-in" ? "Connecting…" : "Connect to AnkiWeb"}
-      </Button>
-    </form>
+
+      <form onSubmit={handleLogin} className="space-y-3">
+        {syncState.phase === "disconnected" && syncState.error && (
+          <div className="rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2 text-sm text-red-700 dark:text-red-400">
+            {syncState.error}
+          </div>
+        )}
+
+        <div>
+          <label htmlFor="ankiweb-email" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Email
+          </label>
+          <input
+            id="ankiweb-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            autoComplete="username"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="ankiweb-password" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              id="ankiweb-password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 pr-16 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 pt-1">
+          <Button
+            type="submit"
+            disabled={syncState.phase === "logging-in" || !email || !password}
+          >
+            {syncState.phase === "logging-in" ? "Connecting…" : "Connect"}
+          </Button>
+          <a
+            href="https://ankiweb.net/account/signup"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+          >
+            Create account →
+          </a>
+        </div>
+      </form>
+    </div>
   );
 };
 

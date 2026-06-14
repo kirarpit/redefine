@@ -12,7 +12,7 @@ Redefine is an intelligent vocabulary learning app that uses LLMs to generate ri
 - **AI-Powered Explanations** — Get clear, contextual explanations with pronunciation, related concepts, and usage examples
 - **Smart Flashcard Generation** — Auto-generates Anki-style cloze cards embedded in real-world sentences
 - **Multi-Provider LLM Support** — Works with OpenAI, Anthropic Claude, and Google Gemini
-- **Anki Integration** — Export flashcards to Anki with a single tap
+- **Anki Integration** — Export flashcards to Anki with a single tap; optional AnkiWeb sync pushes cards to AnkiDroid automatically
 - **Mobile-First Design** — Built for learning on the go. Instead of searching in your browser, search here and get flashcards you can import directly into Anki
 - **Lightweight** — Uses only ~15MB of memory
 - **Self-Hosted** — Your data stays with you
@@ -109,13 +109,34 @@ We recommend **`gemini/gemini-2.0-flash`** or **`gemini/gemini-2.5-flash-lite`**
 | OpenAI    | `openai/<model>`    | `openai/gpt-4o`                        |
 | Anthropic | `anthropic/<model>` | `anthropic/claude-3-5-sonnet-20241022` |
 
+<a name="ankiweb-sync"></a>
+
 ### Anki Integration
 
-**On Mobile (Recommended):**
+**Option A — Download and import (no setup)**
 
-The easiest option is to tap "Download for Anki" and import the file directly into AnkiMobile or AnkiDroid.
+Tap "Download for Anki" and import the file directly into AnkiMobile or AnkiDroid.
 
-For automatic syncing, you can run [AnkiConnect](https://ankiweb.net/shared/info/2055492159) on your phone—Redefine will detect it and enable "Send to Anki" for one-tap imports. (Note: AnkiConnect integration has been tested on mobile only.)
+**Option B — AnkiConnect (desktop Anki)**
+
+Run [AnkiConnect](https://ankiweb.net/shared/info/2055492159) on the same machine as your browser. Redefine will detect it and enable "Send to Anki" for one-tap imports.
+
+**Option C — AnkiWeb sync (recommended for mobile)**
+
+Add the `anki-server` sidecar to automatically sync cards to AnkiDroid whenever you tap "Send to Anki" — no extra apps needed on your phone.
+
+1. Clone this repo so you have the `anki-server/` directory
+2. Uncomment the `anki-server` service and `ANKI_CONNECT_URL` in `docker-compose.yml`
+3. Start both services:
+
+```bash
+docker-compose up -d
+```
+
+4. Open Settings → **AnkiWeb Sync** and sign in with your AnkiWeb credentials
+5. Tap "Send to Anki" on any flashcard — it will appear in AnkiDroid after the next sync
+
+> **How it works:** A lightweight headless Python sidecar manages a local Anki collection and syncs it to AnkiWeb after each card is saved. Your AnkiWeb password is used only to obtain a session token and is never stored.
 
 ## 🛠️ Local Development
 
