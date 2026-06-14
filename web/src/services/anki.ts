@@ -1,7 +1,9 @@
 import { Dispatch, SetStateAction } from "react";
+import { API_BASE_URL } from "../config";
 
-// Constant for the deck name to prevent typos and ensure consistency
 export const REDEFINE_DECK_NAME = "Redefine";
+export const LOCAL_ANKI_URL = "http://127.0.0.1:8765";
+export const SERVER_ANKI_PROXY_URL = `${API_BASE_URL}/anki/proxy`;
 
 export type AnkiDebugInfo = {
   lastChecked: string;
@@ -83,7 +85,8 @@ export const checkAnkiConnectAvailable = async (
     message: string,
     level: "info" | "error" | "success",
     details?: any
-  ) => void
+  ) => void,
+  url: string = LOCAL_ANKI_URL
 ): Promise<{
   success: boolean;
   error: string | null;
@@ -95,7 +98,7 @@ export const checkAnkiConnectAvailable = async (
         : addLog(setAnkiState, "Checking AnkiConnect availability...", "info");
     }
 
-    const response = await fetch("http://127.0.0.1:8765", {
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -167,11 +170,12 @@ export const getAvailableDecks = async (
     message: string,
     level: "info" | "error" | "success",
     details?: any
-  ) => void
+  ) => void,
+  url: string = LOCAL_ANKI_URL
 ): Promise<string[]> => {
   try {
     logFunc("Retrieving available Anki decks...", "info");
-    const decksResponse = await fetch("http://127.0.0.1:8765", {
+    const decksResponse = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -206,7 +210,8 @@ export const createDeckIfNotExists = async (
     level: "info" | "error" | "success",
     details?: any
   ) => void,
-  availableDecks?: string[]
+  availableDecks?: string[],
+  url: string = LOCAL_ANKI_URL
 ): Promise<boolean> => {
   // Safety check: ensure deck name is valid and not empty
   if (!deckName || typeof deckName !== "string" || deckName.trim().length === 0) {
@@ -217,7 +222,7 @@ export const createDeckIfNotExists = async (
   try {
     let decks = availableDecks;
     if (!decks || !decks.length) {
-      decks = await getAvailableDecks(logFunc);
+      decks = await getAvailableDecks(logFunc, url);
     }
 
     if (decks.includes(deckName)) {
@@ -226,7 +231,7 @@ export const createDeckIfNotExists = async (
     }
 
     logFunc(`Deck '${deckName}' not found. Will create it.`, "info");
-    const createDeckResponse = await fetch("http://127.0.0.1:8765", {
+    const createDeckResponse = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -277,7 +282,8 @@ export const addFlashcardsToAnki = async (
     message: string,
     level: "info" | "error" | "success",
     details?: any
-  ) => void
+  ) => void,
+  url: string = LOCAL_ANKI_URL
 ): Promise<boolean> => {
   const logFunc = (
     message: string,
@@ -347,7 +353,7 @@ export const addFlashcardsToAnki = async (
         note
       );
 
-      const response = await fetch("http://127.0.0.1:8765", {
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   addLog,
   addFlashcardsToAnki,
@@ -9,7 +9,9 @@ import {
   downloadAnkiFile,
   generateAnkiTSV,
   getAvailableDecks,
+  LOCAL_ANKI_URL,
   REDEFINE_DECK_NAME,
+  SERVER_ANKI_PROXY_URL,
 } from "../services/anki";
 
 export const useAnkiService = () => {
@@ -18,6 +20,9 @@ export const useAnkiService = () => {
   const [ankiState, setAnkiState] = useState<AnkiState>(
     createInitialAnkiState(showDebugPanel)
   );
+
+  // Tracks which AnkiConnect endpoint is reachable: local or server proxy.
+  const ankiConnectUrlRef = useRef<string>(LOCAL_ANKI_URL);
 
   const logToAnki = (
     message: string,
@@ -53,25 +58,35 @@ export const useAnkiService = () => {
       addLog(setAnkiState, message, level, details, true);
     };
 
-    const { success, error } = await checkAnkiConnectAvailable(
-      undefined,
-      customLog
-    );
+    // Try local AnkiConnect first (for users who run it on the same device).
+    let result = await checkAnkiConnectAvailable(undefined, customLog, LOCAL_ANKI_URL);
+
+    if (!result.success) {
+      // Fall back to the server-side proxy so the phone can reach Anki
+      // running on the same machine as the Redefine server.
+      customLog("Local AnkiConnect not found, trying server proxy...", "info");
+      result = await checkAnkiConnectAvailable(undefined, customLog, SERVER_ANKI_PROXY_URL);
+      if (result.success) {
+        ankiConnectUrlRef.current = SERVER_ANKI_PROXY_URL;
+      }
+    } else {
+      ankiConnectUrlRef.current = LOCAL_ANKI_URL;
+    }
 
     setAnkiState((prev) => ({
       ...prev,
-      ankiConnectAvailable: success,
+      ankiConnectAvailable: result.success,
       debugInfo: {
         ...prev.debugInfo,
-        error,
+        error: result.error,
       },
     }));
 
-    if (!success) {
+    if (!result.success) {
       return false;
     }
 
-    const decks = await getAvailableDecks(customLog);
+    const decks = await getAvailableDecks(customLog, ankiConnectUrlRef.current);
     if (decks.length > 0) {
       setAnkiState((prev) => ({
         ...prev,
@@ -79,7 +94,7 @@ export const useAnkiService = () => {
       }));
     }
 
-    return success;
+    return true;
   };
 
   const clearLogs = () => {
@@ -161,7 +176,7 @@ export const useAnkiService = () => {
         const connected = await refreshAnkiConnection();
         if (!connected) {
           const errorMessage =
-            "Could not connect to Anki. Please make sure Anki and AnkiConnect are running.";
+            "Could not connect to Anki. Please make sure Anki is running with AnkiConnect, or that ANKI_CONNECT_URL is configured on your Redefine server.";
           logToAnki(errorMessage, "error");
           return { success: false, errorMessage };
         }
@@ -193,7 +208,7 @@ export const useAnkiService = () => {
           logToAnki(message, level, details, true);
         };
 
-        const deckCreated = await createDeckIfNotExists(deckName, customLog);
+        const deckCreated = await createDeckIfNotExists(deckName, customLog, undefined, ankiConnectUrlRef.current);
 
         if (!deckCreated) {
           const errorMessage = `Could not create deck '${deckName}'. Please create this deck manually in Anki first.`;
@@ -281,7 +296,8 @@ export const useAnkiService = () => {
           "Basic",
           allTags,
           undefined,
-          customLog
+          customLog,
+          ankiConnectUrlRef.current
         );
         if (basicSuccess) successCount += basicFlashcards.length;
       }
@@ -294,7 +310,8 @@ export const useAnkiService = () => {
           "Cloze",
           allTags,
           undefined,
-          customLog
+          customLog,
+          ankiConnectUrlRef.current
         );
         if (clozeSuccess) successCount += clozeFlashcards.length;
       }

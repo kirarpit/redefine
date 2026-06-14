@@ -26,4 +26,5 @@ func SetupRoutes(r *gin.Engine) {
 	setupFlashcardRoutes(api)
 	setupLLMRoutes(api)
 	setupSettingsRoutes(api)
+	setupAnkiRoutes(api)
 }

@@ -21,3 +21,10 @@ func SaltKey() string {
 func DefaultPromptTemplatePath() string {
 	return "./prompts/default_explanation.yaml"
 }
+
+func AnkiConnectURL() string {
+	if url := os.Getenv("ANKI_CONNECT_URL"); url != "" {
+		return url
+	}
+	return "http://127.0.0.1:8765"
+}
